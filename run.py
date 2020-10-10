@@ -1,4 +1,5 @@
 import os
+import sys
 import shutil
 import time
 import math
@@ -220,7 +221,7 @@ def check_output_dir(set_output, filename, sf, output_type):
         # If didn't specify output
         output_dir_ = f'{filename[0]}/{filename[1]}_{sf}x'
     else:
-        output_dir_ = set_output
+        output_dir_ = os.path.splitext(set_output)[0]
     # Check output name
     if output_type == 'video':
         if set_output == 'default':
@@ -260,6 +261,7 @@ def npz2tif(npz_path, tiff_path):  # 把npz转成tiff
 
 # Process Info
 args = args.__dict__
+sys.path.append(os.path.abspath(args['algorithm']))
 # 算法
 if args['algorithm'] == 'SSM':
     from SSM.interpolate import main
@@ -288,6 +290,7 @@ else:
 
 for process in processes:
     cag = {'model_path': args['model_path'],
+           'algorithm': args['algorithm'],
            'batch_size': args['batch_size'],
            'start_frame': args['start_frame'],
            'output': args['output'],
@@ -309,6 +312,10 @@ for process in processes:
         cag['original_frames_to_process'] = listdir(f'{cag["current_temp_file_path"]}/in')[
                                             cag['start_frame'] - 1:cag['end_frame']]
         cag['frames_to_process'] = cag['original_frames_to_process']
+        if cag['algorithm'] == 'DAIN':
+            cag['net_name'] = args['net_name']
+            cag['save_which'] = args['save_which']
+            
     else:
         cag = read_cag(process)
 
