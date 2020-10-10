@@ -47,19 +47,14 @@ def main(process_info_path):
     input_files = process_info['frames_to_process']
     loop_timer = []
     try:
+        X1_ori = torch.cuda.FloatTensor(numpy.load(f'{process_info["current_temp_file_path"]}/in/{input_files[0]}')['arr_0'])[:, :, :3].permute(2, 0, 1) / 255
         for _ in range(len(input_files) - 1):
 
             start_time = time.time()
 
-            filename_frame_1 = f'{process_info["current_temp_file_path"]}/in/{input_files[_]}'
             filename_frame_2 = f'{process_info["current_temp_file_path"]}/in/{input_files[_ + 1]}'
 
-            # X0 = torch.from_numpy(numpy.transpose(numpy.load(filename_frame_1)['arr_0'], (2, 0, 1))[0:3].astype("float32") / 255.0).type(torch.cuda.FloatTensor)
-            # X1 = torch.from_numpy(numpy.transpose(numpy.load(filename_frame_2)['arr_0'], (2, 0, 1))[0:3].astype("float32") / 255.0).type(torch.cuda.FloatTensor)
-            if _ == 0:
-                X0 = torch.cuda.FloatTensor(numpy.load(filename_frame_1)['arr_0'])[:, :, :3].permute(2, 0, 1) / 255
-            else:
-                X0 = X1_ori
+            X0 = X1_ori
             X1 = torch.cuda.FloatTensor(numpy.load(filename_frame_2)['arr_0'])[:, :, :3].permute(2, 0, 1) / 255
             X1_ori = X1
 
