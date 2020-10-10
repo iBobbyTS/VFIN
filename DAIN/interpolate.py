@@ -8,14 +8,13 @@ import shutil
 import warnings
 
 
-def run(process_info_path):
+def main(process_info_path):
     warnings.filterwarnings("ignore", category=UserWarning)
     torch.backends.cudnn.benchmark = True
 
     with open(process_info_path, 'r') as file:
         process_info = file.read()
         process_info = eval(process_info)
-    os.chdir(process_info['project_folder'])
     sf_length = len(str(process_info['sf'] - 1))
 
     model = networks.__dict__[process_info['net_name']](
@@ -52,8 +51,8 @@ def run(process_info_path):
 
             start_time = time.time()
 
-            filename_frame_1 = f'{process_info["temp_folder"]}/in/{input_files[_]}'
-            filename_frame_2 = f'{process_info["temp_folder"]}/in/{input_files[_ + 1]}'
+            filename_frame_1 = f'{process_info["current_temp_file_path"]}/in/{input_files[_]}'
+            filename_frame_2 = f'{process_info["current_temp_file_path"]}/in/{input_files[_ + 1]}'
 
             # X0 = torch.from_numpy(numpy.transpose(numpy.load(filename_frame_1)['arr_0'], (2, 0, 1))[0:3].astype("float32") / 255.0).type(torch.cuda.FloatTensor)
             # X1 = torch.from_numpy(numpy.transpose(numpy.load(filename_frame_2)['arr_0'], (2, 0, 1))[0:3].astype("float32") / 255.0).type(torch.cuda.FloatTensor)
@@ -123,21 +122,18 @@ def run(process_info_path):
 
             interpolated_frame_number = 0
             shutil.copy(filename_frame_1,
-                        f'{process_info["temp_folder"]}/out/{input_files[_].replace(".npz", "")}_{"0".zfill(sf_length)}.npz')
+                        f'{process_info["current_temp_file_path"]}/out/{input_files[_].replace(".npz", "")}_{"0".zfill(sf_length)}.npz')
             for item, time_offset in zip(y_, time_offsets):
                 interpolated_frame_number += 1
-                output_frame_file_path = f'{process_info["temp_folder"]}/out/{input_files[_].replace(".npz", "")}_{str(interpolated_frame_number).zfill(sf_length)}'
+                output_frame_file_path = f'{process_info["current_temp_file_path"]}/out/{input_files[_].replace(".npz", "")}_{str(interpolated_frame_number).zfill(sf_length)}'
                 numpy.savez_compressed(output_frame_file_path, numpy.round(item).astype('uint8'))
 
             end_time = time.time()
             time_spent = end_time - start_time
             if _ == 0:
-                frame_count_len = len(str(len(input_files)))
                 print(
-                    f"****** Initialized model and processed frame {'1'.zfill(frame_count_len)} | Time spent: {round(time_spent, 2)}s ******************")
+                    f"Initialized model and processed frame 1 | Time spent: {round(time_spent, 2)}s", end='')
             else:
-                if _ == 1:
-                    len_time_spent = len(str(round(time_spent))) + 5
                 loop_timer.append(time_spent)
                 frames_left = len(input_files) - _ - 2
                 estimated_seconds_left = round(frames_left * sum(loop_timer) / len(loop_timer), 2)
@@ -145,8 +141,8 @@ def run(process_info_path):
                 h, m = divmod(m, 60)
                 estimated_time_left = "%d:%02d:%02d" % (h, m, s)
                 print(
-                    f"****** Processed frame {str(_ + 1).zfill(frame_count_len)} | Time spent: {(str(round(time_spent, 2)) + 's').ljust(len_time_spent)} | Time left: {estimated_time_left} ******************")
+                    f"\rProcessed frame {_ + 1} | Time spent: {round(time_spent, 2)}s | Time left: {estimated_time_left}", end='', flush=True)
 
-        print("Finished processing images.")
+        print("\nFinished processing images.")
     except KeyboardInterrupt:
         exit(1)
