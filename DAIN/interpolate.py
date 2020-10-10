@@ -65,7 +65,7 @@ def main(process_info_path):
             channels = X0.size(0)
             if not channels == 3:
                 print(
-                    f"Skipping {filename_frame_1}-{filename_frame_2} -- expected 3 color channels but found {channels}.")
+                    f"Skipping {filename_frame_2} -- expected 3 color channels but found {channels}.")
                 continue
 
             if intWidth != ((intWidth >> 7) << 7):
@@ -116,7 +116,7 @@ def main(process_info_path):
                                          intPaddingLeft: intPaddingLeft + intWidth], (1, 2, 0))
 
             interpolated_frame_number = 0
-            shutil.copy(filename_frame_1,
+            shutil.copy(f'{process_info["current_temp_file_path"]}/in/{input_files[_]}',
                         f'{process_info["current_temp_file_path"]}/out/{input_files[_].replace(".npz", "")}_{"0".zfill(sf_length)}.npz')
             for item, time_offset in zip(y_, time_offsets):
                 interpolated_frame_number += 1
