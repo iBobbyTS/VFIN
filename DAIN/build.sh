@@ -15,7 +15,7 @@ fi
 echo "Building CUDAExtension for PyTorch in $python_executable"
 echo "You need torch>=1.0.0, <=1.4.0, you have $($python_executable -c "import torch; print(torch.__version__)")"
 
-cd my_packages
+cd my_package
 export PYTHONPATH=$python_executable:$(pwd)
 
 cd MinDepthFlowProjection
