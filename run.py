@@ -332,7 +332,6 @@ for process in processes:
     if cag['reinitialize']:
         for i in range(len(frames_to_process) - 1):
             cag['frames_to_process'] = frames_to_process[i: i + 2]
-            print(cag['frames_to_process'])
             os.system(f'{sys.executable} -c "import sys; sys.path.append(\'{os.path.abspath(args["algorithm"])}\'); from interpolate import main; main(\'\'\'{cag}\'\'\')"')
     else:
         os.system(f'{sys.executable} -c "import sys; sys.path.append(\'{os.path.abspath(args["algorithm"])}\'); from interpolate import main; main(\'\'\'{cag}\'\'\')"')
