@@ -8,13 +8,11 @@ import shutil
 import warnings
 
 
-def main(process_info_path):
+def main(process_info):
     warnings.filterwarnings("ignore", category=UserWarning)
     torch.backends.cudnn.benchmark = True
 
-    with open(process_info_path, 'r') as file:
-        process_info = file.read()
-        process_info = eval(process_info)
+    process_info = eval(process_info)
     sf_length = len(str(process_info['sf'] - 1))
 
     model = networks.__dict__[process_info['net_name']](
