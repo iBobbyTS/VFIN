@@ -71,6 +71,8 @@ parser.add_argument('-net', '--net_name', type=str, default='DAIN_slowmotion',  
                     choices=['DAIN', 'DAIN_slowmotion'], help='model architecture: DAIN | DAIN_slowmotion')
 parser.add_argument('-sw', '--save_which', type=int, default=1,  # 保存哪个
                     choices=[0, 1], help='choose which result to save: 0 ==> interpolated, 1==> rectified')
+parser.add_argument('-ri', '--reinitialize', type=int, default=0,  # 保存哪个
+                    choices=[0, 1], help='Reinitilize for each interpolation')
 
 args = parser.parse_args()
 
@@ -258,19 +260,18 @@ def npz2tif(npz_path, tiff_path):  # 把npz转成tiff
         img = numpy.load(f'{npz_path}/{frame}')['arr_0']
         cv2.imwrite(f'{tiff_path}/{frame.split(".")[0]}.tiff', img)
 
-
 # Process Info
 args = args.__dict__
-sys.path.append(os.path.abspath(args['algorithm']))
-# 算法
-if args['algorithm'] == 'SSM':
-    from SSM.interpolate import main
-elif args['algorithm'] == 'DAIN':
-    from DAIN.interpolate import main
-else:
-    def main(**error):
-        print(error)
-        exit(1)
+# sys.path.append(os.path.abspath(args['algorithm']))
+# # 算法
+# if args['algorithm'] == 'SSM':
+#     from SSM.interpolate import main
+# elif args['algorithm'] == 'DAIN':
+#     from DAIN.interpolate import main
+# else:
+#     def main(**error):
+#         print(error)
+#         exit(1)
 
 # Model checking
 model_path = {'DAIN': 'DAIN/model_weights/best.pth', 'SSM': 'SSM/SuperSloMo.ckpt'}
@@ -291,6 +292,7 @@ else:
 for process in processes:
     cag = {'model_path': args['model_path'],
            'algorithm': args['algorithm'],
+           'reinitialize': args['reinitialize'], 
            'batch_size': args['batch_size'],
            'start_frame': args['start_frame'],
            'output': args['output'],
@@ -325,7 +327,15 @@ for process in processes:
 
     # Process
     t = time.time()
-    main(f'{cag["current_temp_file_path"]}/process_info.txt')
+    # main(f'{cag["current_temp_file_path"]}/process_info.txt')
+    frames_to_process = cag['frames_to_process']
+    if cag['reinitialize']:
+        for i in range(len(frames_to_process) - 1):
+            cag['frames_to_process'] = frames_to_process[i: i + 2]
+            print(cag['frames_to_process'])
+            os.system(f'{sys.executable} -c "import sys; sys.path.append(\'{os.path.abspath(args["algorithm"])}\'); from interpolate import main; main(\'\'\'{cag}\'\'\')"')
+    else:
+        os.system(f'{sys.executable} -c "import sys; sys.path.append(\'{os.path.abspath(args["algorithm"])}\'); from interpolate import main; main(\'\'\'{cag}\'\'\')"')
     print(f'Interpolation spent {round(time.time() - t, 2)}s')
 
     # if cag['copy']:
