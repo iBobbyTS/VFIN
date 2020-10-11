@@ -11,7 +11,7 @@ import warnings
 def main(process_info):
     warnings.filterwarnings("ignore", category=UserWarning)
     torch.backends.cudnn.benchmark = True
-
+    
     process_info = eval(process_info)
     sf_length = len(str(process_info['sf'] - 1))
 
@@ -20,9 +20,8 @@ def main(process_info):
         filter_size=4,
         timestep=1 / process_info['sf'],
         training=False).cuda()
-
     model_path = process_info['model_path']
-
+    
     pretrained_dict = torch.load(model_path)
 
     model_dict = model.state_dict()
@@ -41,7 +40,7 @@ def main(process_info):
     time_offsets = [kk * timestep for kk in range(1, int(1.0 / timestep))]
 
     torch.set_grad_enabled(False)
-
+    
     input_files = process_info['frames_to_process']
     loop_timer = []
     try:
@@ -123,19 +122,22 @@ def main(process_info):
 
             end_time = time.time()
             time_spent = end_time - start_time
-            if _ == 0:
-                print(
-                    f"Initialized model and processed frame 1 | Time spent: {round(time_spent, 2)}s", end='')
+            if process_info['reinitialize'] == 0:
+                if _ == 0:
+                    print(
+                        f"Initialized model and processed frame 1 | Time spent: {round(time_spent, 2)}s", end='')
+                else:
+                    loop_timer.append(time_spent)
+                    frames_left = len(input_files) - _ - 2
+                    estimated_seconds_left = round(frames_left * sum(loop_timer) / len(loop_timer), 2)
+                    m, s = divmod(estimated_seconds_left, 60)
+                    h, m = divmod(m, 60)
+                    estimated_time_left = "%d:%02d:%02d" % (h, m, s)
+                    print(
+                        f"\rProcessed frame {_ + 1} | Time spent: {round(time_spent, 2)}s | Time left: {estimated_time_left}", end='', flush=True)
             else:
-                loop_timer.append(time_spent)
-                frames_left = len(input_files) - _ - 2
-                estimated_seconds_left = round(frames_left * sum(loop_timer) / len(loop_timer), 2)
-                m, s = divmod(estimated_seconds_left, 60)
-                h, m = divmod(m, 60)
-                estimated_time_left = "%d:%02d:%02d" % (h, m, s)
                 print(
-                    f"\rProcessed frame {_ + 1} | Time spent: {round(time_spent, 2)}s | Time left: {estimated_time_left}", end='', flush=True)
+                    f"\rProcessed frame {process_info['frames_to_process'][0].split('.')[0]} | Time spent: {round(time_spent, 2)}s", end='', flush=True)
 
-        print("\nFinished processing images.")
     except KeyboardInterrupt:
         exit(1)
