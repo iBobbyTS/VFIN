@@ -44,11 +44,10 @@ def main(process_info):
     input_files = process_info['frames_to_process']
     loop_timer = []
     try:
+        start_time = time.time()
+
         X1_ori = torch.cuda.FloatTensor(numpy.load(f'{process_info["current_temp_file_path"]}/in/{input_files[0]}')['arr_0'])[:, :, :3].permute(2, 0, 1) / 255
         for _ in range(len(input_files) - 1):
-
-            start_time = time.time()
-
             filename_frame_2 = f'{process_info["current_temp_file_path"]}/in/{input_files[_ + 1]}'
 
             X0 = X1_ori
@@ -120,12 +119,10 @@ def main(process_info):
                 output_frame_file_path = f'{process_info["current_temp_file_path"]}/out/{input_files[_].replace(".npz", "")}_{str(interpolated_frame_number).zfill(sf_length)}'
                 numpy.savez_compressed(output_frame_file_path, numpy.round(item).astype('uint8'))
 
-            end_time = time.time()
-            time_spent = end_time - start_time
+            time_spent = time.time() - start_time
             if process_info['reinitialize'] == 0:
                 if _ == 0:
-                    print(
-                        f"Initialized model and processed frame 1 | Time spent: {round(time_spent, 2)}s", end='')
+                    print(f"Initialized model and processed frame {process_info['frames_to_process'][_ + 1].split('.')[0]} | Time spent: {round(time_spent, 2)}s", end='')
                 else:
                     loop_timer.append(time_spent)
                     frames_left = len(input_files) - _ - 2
@@ -133,11 +130,10 @@ def main(process_info):
                     m, s = divmod(estimated_seconds_left, 60)
                     h, m = divmod(m, 60)
                     estimated_time_left = "%d:%02d:%02d" % (h, m, s)
-                    print(
-                        f"\rProcessed frame {_ + 1} | Time spent: {round(time_spent, 2)}s | Time left: {estimated_time_left}", end='', flush=True)
+                    print(f"\rProcessed frame {process_info['frames_to_process'][_ + 1].split('.')[0]} | Time spent: {round(time_spent, 2)}s | Time left: {estimated_time_left}", end='', flush=True)
             else:
-                print(
-                    f"\rProcessed frame {process_info['frames_to_process'][0].split('.')[0]} | Time spent: {round(time_spent, 2)}s", end='', flush=True)
+                print(f"\rProcessed frame {process_info['frames_to_process'][0].split('.')[0]} | Time spent: {round(time_spent, 2)}s", end='', flush=True)
+            start_time = time.time()
 
     except KeyboardInterrupt:
         exit(1)
