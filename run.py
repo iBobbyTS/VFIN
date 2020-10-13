@@ -61,7 +61,13 @@ parser.add_argument('-bs', '--batch_size',  # Batch Size
 # Temporary files
 parser.add_argument('-tmp', '--temp_file_path',  # 临时文件路径
                     type=str, default='tmp',
-                    help='Specify temporary file path, put it in your drive to make sure you don\'t lost them when colab disconnects. ')
+                    help='Specify temporary file path')
+parser.add_argument('-tmpdv', '--temp_drive_file_path',  # 临时文件路径
+                    type=str, 
+                    help='COLAB ONLY!!! Specify temporary file path in your mounted Drive. ')
+parser.add_argument('-stp', '--store_step',  # 临时文件路径
+                    type=int, default=100,
+                    help='How often do you want to copy the progress to drive. ')
 parser.add_argument('-rm', '--remove_temp_file',  # 是否移除临时文件
                     type=bool, default=False,
                     help='If you want to keep temporary files, select True ')
@@ -113,13 +119,18 @@ def split_file_name(file_path):
 
 
 def create_temp_folder(temp_file_path, filename):
-    while True:
-        temp_folder = os.path.join(temp_file_path, f'{filename}-{random.randint(1000000, 9999999)}')
-        temp_folder = os.path.abspath(temp_folder)
-        if not os.path.exists(temp_folder):
-            break
+    temp_folder = os.path.join(temp_file_path, filename)
+
+    if os.path.exists(temp_folder):
+      count = 2
+      while True:
+        if not os.path.exists(f'{temp_folder}_{count}'):
+          temp_folder = f'{temp_folder}_{count}'
+          break
+        count += 1
+    temp_folder = os.path.abspath(temp_folder)
+
     os.makedirs(temp_folder)
-    os.makedirs(f'{temp_folder}/out')
     print(f'Created temporary folder: \n{temp_folder}')
     return temp_folder
 
@@ -200,7 +211,7 @@ def process_start_end_frame(in_start_frame, in_end_frame, frame_count):
         end_frame = frame_count
     else:
         copy = False
-        end_frame = in_end_frame
+        end_frame = in_end_frame + 1
     if in_start_frame == 0 or in_start_frame >= frame_count:
         start_frame = 1
     else:
@@ -212,7 +223,7 @@ def read_cag(cag_path):
     with open(cag_path, 'r') as f_:
         cag_ = eval(f_.read())
     processed_frame_count_ = len(listdir(f'{cag_["current_temp_file_path"]}/out'))
-    start_frame_ = int(processed_frame_count_ // cag['sf'])
+    start_frame_ = int(processed_frame_count_ // cag_['sf'])
     cag_['frames_to_process'] = cag_['original_frames_to_process'][start_frame_:]
     return cag_
 
@@ -242,9 +253,7 @@ def check_output_dir(set_output, filename, sf, output_type):
     count = 2
     if os.path.exists(output_dir_ + ext):
         while True:
-            if os.path.exists(f'{output_dir_}_{count}{ext}'):
-                pass
-            else:
+            if not os.path.exists(f'{output_dir_}_{count}{ext}'):
                 output_dir_ = f'{output_dir_}_{count}{ext}'
                 break
             count += 1
@@ -262,25 +271,7 @@ def npz2tif(npz_path, tiff_path):  # 把npz转成tiff
 
 # Process Info
 args = args.__dict__
-# sys.path.append(os.path.abspath(args['algorithm']))
-# # 算法
-# if args['algorithm'] == 'SSM':
-#     from SSM.interpolate import main
-# elif args['algorithm'] == 'DAIN':
-#     from DAIN.interpolate import main
-# else:
-#     def main(**error):
-#         print(error)
-#         exit(1)
-
-# Model checking
 model_path = {'DAIN': 'DAIN/model_weights/best.pth', 'SSM': 'SSM/SuperSloMo.ckpt'}
-if args['model_path'] == 'default':  # 模型路径
-    args['model_path'] = model_path[args['algorithm']]
-
-if not os.path.exists(args["model_path"]):
-    print(f"Model {args['algorithm']}/{args['model_path']} doesn't exist, exiting")
-    exit(1)
 
 input_type = detect_input_type(args['input'])  # 把要处理的一个或多个视频放入一个列表
 if input_type == 'mix':
@@ -288,38 +279,52 @@ if input_type == 'mix':
     processes = [os.path.join(args['input'], process) for process in processes]
 else:
     processes = [args['input']]
-
 for process in processes:
-    cag = {'model_path': args['model_path'],
-           'algorithm': args['algorithm'],
-           'reinitialize': args['reinitialize'], 
-           'batch_size': args['batch_size'],
-           'start_frame': args['start_frame'],
-           'output': args['output'],
-           'output_type': args['output_type'],
-           'mac_compatibility': args['mac_compatibility'],
-           'remove_temp_file': args['remove_temp_file'],
-           'ffmpeg_dir': args['ffmpeg_dir'],
-           'vcodec': args['vcodec']}  # Current arguments
-    if process != 'continue':  # If not continue
+    if detect_input_type(process) != 'continue':  # If not continue
+        cag = {'model_path': args['model_path'],
+               'algorithm': args['algorithm'],
+               'reinitialize': args['reinitialize'], 
+               'batch_size': args['batch_size'],
+               'start_frame': args['start_frame'],
+               'end_frame': args['end_frame'],
+               'output': args['output'],
+               'output_type': args['output_type'],
+               'remove_temp_file': args['remove_temp_file'],
+               # FFmpeg
+               'ffmpeg_dir': args['ffmpeg_dir'],
+               'vcodec': args['vcodec'], 
+               'mac_compatibility': args['mac_compatibility'],  # pix_fmt yuv420p
+               # DAIN
+               'net_name': args['net_name'],
+               'save_which': args['save_which'],
+               'reinitialize': args['reinitialize'],
+               # Colab
+               'temp_drive_file_path': args['temp_drive_file_path'],
+               'store_step': args['store_step']}  # Current arguments
+        
         cag['input_file_path'] = process
         cag['input_file_name_list'] = split_file_name(cag['input_file_path'])
         cag['current_temp_file_path'] = create_temp_folder(args['temp_file_path'], cag['input_file_name_list'][1])
+        os.makedirs(f"{cag['current_temp_file_path']}/out")
+        cag['current_temp_drive_file_path'] = create_temp_folder(args['temp_drive_file_path'], cag['input_file_name_list'][1])
         # Detect input type and process it.
         cag['input_type'] = detect_input_type(cag['input_file_path'])
         cag = pre_process(cag, args)
         # Start/End frame
-        cag['start_frame'], cag['end_frame'], cag['copy'] = process_start_end_frame(args['start_frame'], args['end_frame'], cag['frame_count'])
+        cag['start_frame'], cag['end_frame'], cag['copy'] = process_start_end_frame(cag['start_frame'], cag['end_frame'], cag['frame_count'])
         # Frames to process
-        cag['original_frames_to_process'] = listdir(f'{cag["current_temp_file_path"]}/in')[
-                                            cag['start_frame'] - 1:cag['end_frame']]
+        cag['original_frames_to_process'] = listdir(f'{cag["current_temp_file_path"]}/in')[cag['start_frame'] - 1:cag['end_frame']]
         cag['frames_to_process'] = cag['original_frames_to_process']
-        if cag['algorithm'] == 'DAIN':
-            cag['net_name'] = args['net_name']
-            cag['save_which'] = args['save_which']
-            
+
     else:
         cag = read_cag(process)
+    # Model checking
+    if cag['model_path'] == 'default':  # 模型路径
+        cag['model_path'] = model_path[cag['algorithm']]
+
+    if not os.path.exists(cag["model_path"]):
+        print(f"Model {args['algorithm']}/{args['model_path']} doesn't exist, exiting")
+        exit(1)
 
     # Log
     with open(f'{cag["current_temp_file_path"]}/process_info.txt', 'w') as f:
@@ -332,18 +337,22 @@ for process in processes:
     if cag['reinitialize']:
         for i in range(len(frames_to_process) - 1):
             cag['frames_to_process'] = frames_to_process[i: i + 2]
-            os.system(f'{sys.executable} -c "import sys; sys.path.append(\'{os.path.abspath(args["algorithm"])}\'); from interpolate import main; main(\'\'\'{cag}\'\'\')"')
+            if os.system(f"{sys.executable} -c \"import sys; sys.path.append('{os.path.abspath(cag['algorithm'])}'); from interpolate import main; main('''{cag}''')\""):
+              exit(1)
+            
     else:
-        os.system(f'{sys.executable} -c "import sys; sys.path.append(\'{os.path.abspath(args["algorithm"])}\'); from interpolate import main; main(\'\'\'{cag}\'\'\')"')
-    print(f'Interpolation spent {round(time.time() - t, 2)}s')
+        if os.system(f"{sys.executable} -c \"import sys; sys.path.append('{os.path.abspath(cag['algorithm'])}'); from interpolate import main; main('''{cag}''')\""):
+          exit(1)
+    print(f'\nInterpolation spent {round(time.time() - t, 2)}s')
 
-    # if cag['copy']:
-    #     # Copy last frame
-    #     original = f'{cag["current_temp_file_path"]}/in/{cag["original_frames_to_process"][-1]}'
-    #     for i in range(cag['sf']):
-    #         target = f'{cag["current_temp_file_path"]}/out/{cag["original_frames_to_process"][-1].replace(".npz", "")}' \
-    #                  f'_{str(i).zfill(len(str(cag["sf"] - 1)))}.npz'
-    #         shutil.copyfile(original, target)
+    # Copy
+    original = f'{cag["current_temp_file_path"]}/in/{cag["original_frames_to_process"][-1]}'
+    print(cag['copy'])
+    if cag['copy']:
+        # Copy last frame
+        for i in range(1, cag['sf']):
+            target = f'{cag["current_temp_file_path"]}/out/{cag["original_frames_to_process"][-1].replace(".npz", "")}_{str(i).zfill(len(str(cag["sf"] - 1)))}.npz'
+            shutil.copyfile(original, target)
 
     output_dir = check_output_dir(cag['output'], cag["input_file_name_list"], cag["sf"], cag['output_type'])
 
