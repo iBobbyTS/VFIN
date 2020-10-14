@@ -306,7 +306,8 @@ for process in processes:
         cag['input_file_name_list'] = split_file_name(cag['input_file_path'])
         cag['current_temp_file_path'] = create_temp_folder(args['temp_file_path'], cag['input_file_name_list'][1])
         os.makedirs(f"{cag['current_temp_file_path']}/out")
-        cag['current_temp_drive_file_path'] = create_temp_folder(args['temp_drive_file_path'], cag['input_file_name_list'][1])
+        if args['temp_drive_file_path']:
+            cag['current_temp_drive_file_path'] = create_temp_folder(args['temp_drive_file_path'], cag['input_file_name_list'][1])
         # Detect input type and process it.
         cag['input_type'] = detect_input_type(cag['input_file_path'])
         cag = pre_process(cag, args)
