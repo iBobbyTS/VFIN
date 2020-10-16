@@ -128,7 +128,7 @@ def main(process_info):
             time_spent = time.time() - start_time
             if process_info['reinitialize'] == 0:
                 if _ == 0:
-                    print(f"Initialized model and processed frame {process_info['frames_to_process'][_ + 1].split('.')[0]} | Time spent: {round(time_spent, 2)}s", end='')
+                    print(f"Initialized model and processed frame {process_info['frames_to_process'][_].split('.')[0]} | Time spent: {round(time_spent, 2)}s", end='')
                 else:
                     loop_timer.append(time_spent)
                     frames_left = len(input_files) - _ - 2
@@ -136,7 +136,7 @@ def main(process_info):
                     m, s = divmod(estimated_seconds_left, 60)
                     h, m = divmod(m, 60)
                     estimated_time_left = "%d:%02d:%02d" % (h, m, s)
-                    print(f"\rProcessed frame {process_info['frames_to_process'][_ + 1].split('.')[0]} | Time spent: {round(time_spent, 2)}s | Time left: {estimated_time_left}", end='', flush=True)
+                    print(f"\rProcessed frame {process_info['frames_to_process'][_].split('.')[0]} | Time spent: {round(time_spent, 2)}s | Time left: {estimated_time_left}", end='', flush=True)
             else:
                 print(f"\rProcessed frame {process_info['frames_to_process'][0].split('.')[0]} | Time spent: {round(time_spent, 2)}s", end='', flush=True)
             start_time = time.time()
