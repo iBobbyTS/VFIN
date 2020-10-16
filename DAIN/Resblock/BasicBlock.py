@@ -34,10 +34,12 @@ class BasicBlock(nn.Module):
         residual = x
 
         out = self.conv1(x)
+        torch.cuda.empty_cache()
         # out = self.bn1(out)
         out = self.relu(out)
 
         out = self.conv2(out)
+        torch.cuda.empty_cache()
         # out = self.bn2(out)
 
         if self.downsample is not None:
@@ -79,10 +81,15 @@ class MultipleBasicBlock(nn.Module):
 
     def forward(self, x):
         x = self.block1(x)
+        torch.cuda.empty_cache()
         x = self.block2(x) if self.num_block>=2 else x
+        torch.cuda.empty_cache()
         x = self.block3(x) if self.num_block>=3 else x
+        torch.cuda.empty_cache()
         x = self.block4(x) if self.num_block== 4 else x
+        torch.cuda.empty_cache()
         x = self.block5(x)
+        torch.cuda.empty_cache()
         return x
 
 def MultipleBasicBlock_4(input_feature,intermediate_feature = 64):
