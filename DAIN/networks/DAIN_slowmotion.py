@@ -173,10 +173,11 @@ class DAIN_slowmotion(torch.nn.Module):
             cur_offset_output = [temp_0,temp_1] #[cur_offset_outputs[0][0], cur_offset_outputs[1][0]]
             ctx0,ctx2 = self.FilterInterpolate_ctx(cur_ctx_output[0],cur_ctx_output[1],
                                cur_offset_output,cur_filter_output, timeoffset)
-
-
+            torch.cuda.empty_cache()
+            
             cur_output_temp ,ref0,ref2 = self.FilterInterpolate(cur_input_0, cur_input_2,cur_offset_output,
                                           cur_filter_output,self.filter_size**2, timeoffset)
+            torch.cuda.empty_cache()
             cur_output.append(cur_output_temp)
 
             rectify_input = torch.cat((cur_output_temp,ref0,ref2,
