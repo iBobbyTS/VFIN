@@ -1,13 +1,19 @@
-import torch.nn as nn
 import math
-import torch.utils.model_zoo as model_zoo
-import torch.nn.init as weight_init
 import torch
+import torch.nn as nn
+import torch.nn.init as weight_init
+import torch.utils.model_zoo as model_zoo
+from empty_cache import empty_cache
+
 __all__ = ['MultipleBasicBlock','MultipleBasicBlock_4']
+
+
 def conv3x3(in_planes, out_planes, dilation = 1, stride=1):
     "3x3 convolution with padding"
     return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
                      padding=int(dilation*(3-1)/2), dilation=dilation, bias=False)
+
+
 class BasicBlock(nn.Module):
     expansion = 1
 
@@ -34,12 +40,12 @@ class BasicBlock(nn.Module):
         residual = x
 
         out = self.conv1(x)
-        torch.cuda.empty_cache()
+        empty_cache()
         # out = self.bn1(out)
         out = self.relu(out)
 
         out = self.conv2(out)
-        torch.cuda.empty_cache()
+        empty_cache()
         # out = self.bn2(out)
 
         if self.downsample is not None:
@@ -49,6 +55,8 @@ class BasicBlock(nn.Module):
         out = self.relu(out)
 
         return out
+
+
 class MultipleBasicBlock(nn.Module):
 
     def __init__(self,input_feature,
@@ -81,16 +89,17 @@ class MultipleBasicBlock(nn.Module):
 
     def forward(self, x):
         x = self.block1(x)
-        torch.cuda.empty_cache()
+        empty_cache()
         x = self.block2(x) if self.num_block>=2 else x
-        torch.cuda.empty_cache()
+        empty_cache()
         x = self.block3(x) if self.num_block>=3 else x
-        torch.cuda.empty_cache()
+        empty_cache()
         x = self.block4(x) if self.num_block== 4 else x
-        torch.cuda.empty_cache()
+        empty_cache()
         x = self.block5(x)
-        torch.cuda.empty_cache()
+        empty_cache()
         return x
+
 
 def MultipleBasicBlock_4(input_feature,intermediate_feature = 64):
     model = MultipleBasicBlock(input_feature,
