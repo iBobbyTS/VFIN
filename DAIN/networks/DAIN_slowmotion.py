@@ -6,12 +6,13 @@ from my_package.FlowProjection import  FlowProjectionModule #,FlowFillholeModule
 from my_package.DepthFlowProjection import DepthFlowProjectionModule
 
 from Stack import Stack
+from empty_cache import empty_cache
 
 import PWCNet
 import S2D_models
 import Resblock
 import MegaDepth
-import time
+
 
 class DAIN_slowmotion(torch.nn.Module):
     def __init__(self,
@@ -43,7 +44,7 @@ class DAIN_slowmotion(torch.nn.Module):
             self.flownets = PWCNet.__dict__['pwc_dc_net']("PWCNet/pwc_net.pth.tar")
         else:
             self.flownets = PWCNet.__dict__['pwc_dc_net']()
-        torch.cuda.empty_cache()
+        empty_cache()
         self.div_flow = 20.0
 
         #extract depth information
@@ -128,7 +129,7 @@ class DAIN_slowmotion(torch.nn.Module):
         with torch.cuda.stream(s1):
             temp  = self.depthNet(torch.cat((cur_filter_input[:, :3, ...],
                                              cur_filter_input[:, 3:, ...]),dim=0))
-            torch.cuda.empty_cache()
+            empty_cache()
             log_depth = [temp[:cur_filter_input.size(0)], temp[cur_filter_input.size(0):]]
 
             cur_ctx_output = [
@@ -137,12 +138,12 @@ class DAIN_slowmotion(torch.nn.Module):
                     torch.cat((self.ctxNet(cur_filter_input[:, 3:, ...]),
                    log_depth[1].detach()), dim=1)
                     ]
-            torch.cuda.empty_cache()
+            empty_cache()
             temp = self.forward_singlePath(self.initScaleNets_filter, cur_filter_input, 'filter')
-            torch.cuda.empty_cache()
+            empty_cache()
             cur_filter_output = [self.forward_singlePath(self.initScaleNets_filter1, temp, name=None),
                              self.forward_singlePath(self.initScaleNets_filter2, temp, name=None)]
-            torch.cuda.empty_cache()
+            empty_cache()
 
 
             depth_inv = [1e-6 + 1 / torch.exp(d) for d in log_depth]
@@ -154,7 +155,7 @@ class DAIN_slowmotion(torch.nn.Module):
                                         cur_offset_input[:, 0:3, ...]), dim=1),
                               time_offsets=time_offsets[::-1])
                     ]
-            torch.cuda.empty_cache()
+            empty_cache()
 
         torch.cuda.synchronize() #synchronize s1 and s2
 
@@ -173,11 +174,11 @@ class DAIN_slowmotion(torch.nn.Module):
             cur_offset_output = [temp_0,temp_1] #[cur_offset_outputs[0][0], cur_offset_outputs[1][0]]
             ctx0,ctx2 = self.FilterInterpolate_ctx(cur_ctx_output[0],cur_ctx_output[1],
                                cur_offset_output,cur_filter_output, timeoffset)
-            torch.cuda.empty_cache()
+            empty_cache()
             
             cur_output_temp ,ref0,ref2 = self.FilterInterpolate(cur_input_0, cur_input_2,cur_offset_output,
                                           cur_filter_output,self.filter_size**2, timeoffset)
-            torch.cuda.empty_cache()
+            empty_cache()
             cur_output.append(cur_output_temp)
 
             rectify_input = torch.cat((cur_output_temp,ref0,ref2,
