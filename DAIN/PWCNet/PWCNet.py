@@ -4,17 +4,17 @@ implementation of the PWC-DC network for optical flow estimation by Sun et al., 
 Jinwei Gu and Zhile Ren
 
 """
-
+import os
+import numpy as np
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
-import os
+
 os.environ['PYTHON_EGG_CACHE'] = 'tmp/' # a writable directory 
 #from .correlation_package.modules.corr import Correlation
 # from PWCNet.correlation_package_pytorch0_4.correlation import Correlation #pytorch0.4 version
 from PWCNet.correlation_package_pytorch1_0.correlation import Correlation #pytorch0.4 version
-
-import numpy as np
+from empty_cache import empty_cache
 
 
 
@@ -153,7 +153,7 @@ class PWCDCNet(nn.Module):
         self.H_MAX = H_MAX
         self.B_MAX = B_MAX
         self.grid = Variable(grid, requires_grad=False)
-        torch.cuda.empty_cache()
+        empty_cache()
         # self.mask_base = Variable(torch.cuda.FloatTensor().resize_(B_MAX,).zero_() + 1)
 
 
@@ -182,7 +182,7 @@ class PWCDCNet(nn.Module):
         # scale grid to [-1,1] 
         vgrid[:,0,:,:] = 2.0*vgrid[:,0,:,:].clone()/max(W-1,1)-1.0
         vgrid[:,1,:,:] = 2.0*vgrid[:,1,:,:].clone()/max(H-1,1)-1.0
-        torch.cuda.empty_cache()
+        empty_cache()
 
 
         vgrid = vgrid.permute(0,2,3,1)        
@@ -190,7 +190,7 @@ class PWCDCNet(nn.Module):
         # mask = torch.autograd.Variable(torch.ones(x.size())).cuda()
         mask = torch.autograd.Variable(torch.cuda.FloatTensor().resize_(x.size()).zero_() + 1, requires_grad = False)
         mask = nn.functional.grid_sample(mask, vgrid)
-        torch.cuda.empty_cache()
+        empty_cache()
 
         # if W==128:
             # np.save('mask.npy', mask.cpu().data.numpy())
@@ -198,7 +198,7 @@ class PWCDCNet(nn.Module):
         
         mask[mask<0.9999] = 0
         mask[mask>0] = 1
-        torch.cuda.empty_cache()
+        empty_cache()
         
         return output*mask
 
@@ -224,7 +224,7 @@ class PWCDCNet(nn.Module):
         # start=  time.time()
         corr6 = self.corr(c16, c26)
         corr6 = self.leakyRELU(corr6)
-        torch.cuda.empty_cache()
+        empty_cache()
 
 
         x = torch.cat((self.conv6_0(corr6), corr6),1)
@@ -235,7 +235,7 @@ class PWCDCNet(nn.Module):
         flow6 = self.predict_flow6(x)
         up_flow6 = self.deconv6(flow6)
         up_feat6 = self.upfeat6(x)
-        torch.cuda.empty_cache()
+        empty_cache()
         # print("level6 " +str(time.time()- start))
         # start=  time.time()
         
@@ -246,7 +246,7 @@ class PWCDCNet(nn.Module):
         # print("level5_2 " + str(time.time() - start5))
         # start5 = time.time()
         corr5 = self.leakyRELU(corr5)
-        torch.cuda.empty_cache()
+        empty_cache()
 
         x = torch.cat((corr5, c15, up_flow6, up_feat6), 1)
         x = torch.cat((self.conv5_0(x), x),1)
@@ -254,12 +254,12 @@ class PWCDCNet(nn.Module):
         x = torch.cat((self.conv5_2(x), x),1)
         x = torch.cat((self.conv5_3(x), x),1)
         x = torch.cat((self.conv5_4(x), x),1)
-        torch.cuda.empty_cache()
+        empty_cache()
 
         flow5 = self.predict_flow5(x)
         up_flow5 = self.deconv5(flow5)
         up_feat5 = self.upfeat5(x)
-        torch.cuda.empty_cache()
+        empty_cache()
         # print("level5_3 " + str(time.time() - start5))
         # print("level5 " + str(time.time() - start))
         # start = time.time()
@@ -276,7 +276,7 @@ class PWCDCNet(nn.Module):
         flow4 = self.predict_flow4(x)
         up_flow4 = self.deconv4(flow4)
         up_feat4 = self.upfeat4(x)
-        torch.cuda.empty_cache()
+        empty_cache()
 
         # print("level4 " + str(time.time() - start))
         # start = time.time()
@@ -284,7 +284,7 @@ class PWCDCNet(nn.Module):
         warp3 = self.warp(c23, up_flow4*2.5)
         corr3 = self.corr(c13, warp3) 
         corr3 = self.leakyRELU(corr3)
-        torch.cuda.empty_cache()
+        empty_cache()
         
 
         x = torch.cat((corr3, c13, up_flow4, up_feat4), 1)
@@ -296,7 +296,7 @@ class PWCDCNet(nn.Module):
         flow3 = self.predict_flow3(x)
         up_flow3 = self.deconv3(flow3)
         up_feat3 = self.upfeat3(x)
-        torch.cuda.empty_cache()
+        empty_cache()
 
         # print("level3 " + str(time.time() - start))
         # start = time.time()
@@ -311,13 +311,13 @@ class PWCDCNet(nn.Module):
         x = torch.cat((self.conv2_3(x), x),1)
         x = torch.cat((self.conv2_4(x), x),1)
         flow2 = self.predict_flow2(x)
-        torch.cuda.empty_cache()
+        empty_cache()
         # print("level2 " + str(time.time() - start))
         # start = time.time()
 
         x = self.dc_conv4(self.dc_conv3(self.dc_conv2(self.dc_conv1(x))))
         flow2 += self.dc_conv7(self.dc_conv6(self.dc_conv5(x)))
-        torch.cuda.empty_cache()
+        empty_cache()
         # print("refine " + str(time.time() - start))
         # start = time.time()
 
