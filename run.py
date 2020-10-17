@@ -298,7 +298,7 @@ for process in processes:
                'output': args['output'],
                'output_type': args['output_type'],
                'remove_temp_file': args['remove_temp_file'],
-               'empty_cache': args['empty_cache']
+               'empty_cache': args['empty_cache'],
                # FFmpeg
                'ffmpeg_dir': args['ffmpeg_dir'],
                'vcodec': args['vcodec'], 
