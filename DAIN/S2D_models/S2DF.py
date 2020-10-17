@@ -1,8 +1,9 @@
-import torch.nn as nn
 import math
-import torch.utils.model_zoo as model_zoo
-
 import torch
+import torch.nn as nn
+import torch.utils.model_zoo as model_zoo
+from empty_cache import empty_cache
+
 # __all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
            # 'resnet152','resnet18_conv1']
 __all__ = ['S2DF','S2DF_3dense','S2DF_3dense_nodilation',
@@ -51,6 +52,8 @@ class BasicBlock(nn.Module):
 
         out += residual
         out = self.relu(out)
+        
+        empty_cache()
 
         return out
 
