@@ -58,6 +58,9 @@ parser.add_argument('-mc', '--mac_compatibility',  # 让苹果设备可以直接
 parser.add_argument('-bs', '--batch_size',  # Batch Size
                     type=int, default=1,
                     help='Specify batch size for faster conversion. This will depend on your cpu/gpu memory. Default: 1')
+parser.add_argument('-ec', '--empty_cache',  # Batch Size
+                    type=int, default=0,
+                    help='Empty cache while processing, set to 1 if you get CUDA out of memory errors; If there\'s the proces is ok, setting to 1 will slow down the process. ')
 # Temporary files
 parser.add_argument('-tmp', '--temp_file_path',  # 临时文件路径
                     type=str, default='tmp',
@@ -219,6 +222,11 @@ def process_start_end_frame(in_start_frame, in_end_frame, frame_count):
     return start_frame, end_frame, copy
 
 
+def set_empty_cache(empty_cache):
+    if empty_cache:
+        os.environ['CUDA_EMPTY_CACHE'] = '1'
+
+
 def read_cag(cag_path):
     with open(cag_path, 'r') as f_:
         cag_ = eval(f_.read())
@@ -317,8 +325,11 @@ for process in processes:
         cag['original_frames_to_process'] = listdir(f'{cag["current_temp_file_path"]}/in')[cag['start_frame'] - 1:cag['end_frame']]
         cag['frames_to_process'] = cag['original_frames_to_process']
 
-    else:
+    else:  # Continue Processing
         cag = read_cag(process)
+    
+    # Set environment variable
+    set_empty_cache(cag['empty_cache'])
     # Model checking
     if cag['model_path'] == 'default':  # 模型路径
         cag['model_path'] = model_path[cag['algorithm']]
