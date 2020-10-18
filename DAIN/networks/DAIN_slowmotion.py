@@ -320,6 +320,8 @@ class DAIN_slowmotion(torch.nn.Module):
 
         ctx0_offset = FilterInterpolationModule()(ctx0,offset[0].detach(),filter[0].detach())
         ctx2_offset = FilterInterpolationModule()(ctx2,offset[1].detach(),filter[1].detach())
+        
+        empty_cache()
 
         return ctx0_offset, ctx2_offset
         # ctx0_offset = FilterInterpolationModule()(ctx0.detach(), offset[0], filter[0])
