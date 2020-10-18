@@ -2,7 +2,7 @@
 import torch
 from torch.autograd import Function
 import filterinterpolation_cuda as my_lib
-from empty_cache import empty_ccache
+from empty_cache import empty_cache
 
 #Please check how the STN FUNCTION is written :
 #https://github.com/fxia22/stn.pytorch/blob/master/script/functions/gridgen.py
@@ -29,10 +29,10 @@ class FilterInterpolationLayer(Function):
         # output =  torch.zeros(input1.size())
 
 
-		# output = output.cuda()
-		output = torch.cuda.FloatTensor().resize_(input1.size()).zero_()
-		my_lib.FilterInterpolationLayer_gpu_forward(input1, input2, input3, output)
-		empty_cache()
+        # output = output.cuda()
+        output = torch.cuda.FloatTensor().resize_(input1.size()).zero_()
+        my_lib.FilterInterpolationLayer_gpu_forward(input1, input2, input3, output)
+        empty_cache()
 
         ctx.save_for_backward(input1, input2,input3)
         # the function returns the output to its caller
@@ -52,13 +52,13 @@ class FilterInterpolationLayer(Function):
         gradinput1 = torch.cuda.FloatTensor().resize_(input1.size()).zero_()
         gradinput2 = torch.cuda.FloatTensor().resize_(input2.size()).zero_()
         gradinput3 = torch.cuda.FloatTensor().resize_(input3.size()).zero_()
-		# gradinput1 = gradinput1.cuda(self.device)
-		# gradinput2 = gradinput2.cuda(self.device)
-		# gradinput3 = gradinput3.cuda(self.device)
+        # gradinput1 = gradinput1.cuda(self.device)
+        # gradinput2 = gradinput2.cuda(self.device)
+        # gradinput3 = gradinput3.cuda(self.device)
 
-		err = my_lib.FilterInterpolationLayer_gpu_backward(input1,input2, input3, gradoutput, gradinput1, gradinput2, gradinput3)
-		if err != 0 :
-			print(err)
+        err = my_lib.FilterInterpolationLayer_gpu_backward(input1,input2, input3, gradoutput, gradinput1, gradinput2, gradinput3)
+        if err != 0 :
+            print(err)
 
         # print(gradinput1)
 
@@ -83,18 +83,18 @@ class WeightLayer(Function):
         self.input3 = input3.contiguous()
         # self.flow1_grad = flow1_grad.contiguous() # ref1 flow's grad
 
-		self.device = torch.cuda.current_device()
+        self.device = torch.cuda.current_device()
 
         output =  torch.zeros(input1.size(0), 1 , input1.size(2), input1.size(3))
 
-		output = output.cuda()
-		err = my_lib.WeightLayer_gpu_forward(input1, input2, input3,
-											 # flow1_grad,
-											 output,
-			 self.lambda_e,  self.lambda_v, self.Nw
-		)
-		if err != 0 :
-			print(err)
+        output = output.cuda()
+        err = my_lib.WeightLayer_gpu_forward(input1, input2, input3,
+                                            # flow1_grad,
+                                            output,
+            self.lambda_e,  self.lambda_v, self.Nw
+        )
+        if err != 0 :
+            print(err)
 
         self.output = output # save this for fast back propagation
         #  the function returns the output to its caller
@@ -109,30 +109,30 @@ class WeightLayer(Function):
         gradinput2 = torch.zeros(self.input2.size())
         gradinput3 = torch.zeros(self.input3.size())
         # gradflow1_grad = torch.zeros(self.flow1_grad.size())
-		# print("CUDA backward")
-		gradinput1 = gradinput1.cuda(self.device)
-		gradinput2 = gradinput2.cuda(self.device)
-		gradinput3 = gradinput3.cuda(self.device)
-		# gradflow1_grad = gradflow1_grad.cuda(self.device)
+        # print("CUDA backward")
+        gradinput1 = gradinput1.cuda(self.device)
+        gradinput2 = gradinput2.cuda(self.device)
+        gradinput3 = gradinput3.cuda(self.device)
+        # gradflow1_grad = gradflow1_grad.cuda(self.device)
 
-		err = my_lib.WeightLayer_gpu_backward(
-			self.input1,self.input2,self.input3, self.output,
-			gradoutput,
-			gradinput1, gradinput2, gradinput3,
-			self.lambda_e,  self.lambda_v, self.Nw
-		)
-		if err != 0 :
-			print(err)
+        err = my_lib.WeightLayer_gpu_backward(
+            self.input1,self.input2,self.input3, self.output,
+            gradoutput,
+            gradinput1, gradinput2, gradinput3,
+            self.lambda_e,  self.lambda_v, self.Nw
+        )
+        if err != 0 :
+            print(err)
 
         # print("from 1:")
         # print(gradinput3[0,0,...])
 
         return gradinput1, gradinput2, gradinput3
-  
+
 class PixelValueLayer(Function):
     def __init__(self, sigma_d = 3, tao_r = 0.05, Prowindow = 2 ):
         super(PixelValueLayer,self).__init__()
-     
+    
         self.sigma_d = sigma_d
         self.tao_r = tao_r #maybe not useable
         self.Prowindow = Prowindow
@@ -146,18 +146,18 @@ class PixelValueLayer(Function):
         self.input3 = input3.contiguous() # ref1 flow
         self.flow_weights = flow_weights.contiguous() # ref1 flow weights
 
-		self.device = torch.cuda.current_device()
+        self.device = torch.cuda.current_device()
 
         output = torch.zeros(input1.size())
         
 
-		output = output.cuda()            
-		err = my_lib.PixelValueLayer_gpu_forward(
-			input1,  input3, flow_weights,   output,
-			self.sigma_d,    self.tao_r ,  self.Prowindow
-		)
-		if err != 0 :
-			print(err)
+        output = output.cuda()            
+        err = my_lib.PixelValueLayer_gpu_forward(
+            input1,  input3, flow_weights,   output,
+            self.sigma_d,    self.tao_r ,  self.Prowindow
+        )
+        if err != 0 :
+            print(err)
 
         # the function returns the output to its caller
         return output
@@ -172,20 +172,20 @@ class PixelValueLayer(Function):
         gradinput3 = torch.zeros(self.input3.size())
         gradflow_weights = torch.zeros(self.flow_weights.size())
 
-		gradinput1 = gradinput1.cuda(self.device)
-		# gradinput2 = gradinput2.cuda(self.device)
-		gradinput3 = gradinput3.cuda(self.device)
-		gradflow_weights = gradflow_weights.cuda(self.device)
+        gradinput1 = gradinput1.cuda(self.device)
+        # gradinput2 = gradinput2.cuda(self.device)
+        gradinput3 = gradinput3.cuda(self.device)
+        gradflow_weights = gradflow_weights.cuda(self.device)
 
-		err = my_lib.PixelValueLayer_gpu_backward(
-			self.input1,self.input3, self.flow_weights,
-			gradoutput,
-			gradinput1,  gradinput3, gradflow_weights,
-			self.sigma_d,    self.tao_r ,  self.Prowindow
-		)
-		if err != 0 :
-			print(err)
-		
+        err = my_lib.PixelValueLayer_gpu_backward(
+            self.input1,self.input3, self.flow_weights,
+            gradoutput,
+            gradinput1,  gradinput3, gradflow_weights,
+            self.sigma_d,    self.tao_r ,  self.Prowindow
+        )
+        if err != 0 :
+            print(err)
+        
         # print("from 2:")
         # print(gradinput3[0,0,...])
         # print("Image grad:")
@@ -213,17 +213,17 @@ class PixelWeightLayer(Function):
         self.input3 = input3.contiguous() # ref1 flow
         self.flow_weights = flow_weights.contiguous() # ref1 flow weights
 
-		self.device = torch.cuda.current_device()
+        self.device = torch.cuda.current_device()
 
         output =  torch.zeros([input3.size(0), 1, input3.size(2), input3.size(3)])
 
-		output = output.cuda()            
-		err = my_lib.PixelWeightLayer_gpu_forward(
-			input3, flow_weights,   output,
-			self.sigma_d,    self.tao_r ,  self.Prowindow
-		)
-		if err != 0 :
-			print(err)
+        output = output.cuda()            
+        err = my_lib.PixelWeightLayer_gpu_forward(
+            input3, flow_weights,   output,
+            self.sigma_d,    self.tao_r ,  self.Prowindow
+        )
+        if err != 0 :
+            print(err)
 
         self.output = output
         # the function returns the output to its caller
@@ -239,26 +239,26 @@ class PixelWeightLayer(Function):
         gradinput3 = torch.zeros(self.input3.size())
         gradflow_weights = torch.zeros(self.flow_weights.size())
 
-		# gradinput1 = gradinput1.cuda(self.device)
-		# gradinput2 = gradinput2.cuda(self.device)
-		gradinput3 = gradinput3.cuda(self.device)
-		gradflow_weights = gradflow_weights.cuda(self.device)
+        # gradinput1 = gradinput1.cuda(self.device)
+        # gradinput2 = gradinput2.cuda(self.device)
+        gradinput3 = gradinput3.cuda(self.device)
+        gradflow_weights = gradflow_weights.cuda(self.device)
 
-		err = my_lib.PixelWeightLayer_gpu_backward(
-			self.input3, self.flow_weights,  self.output,
-			gradoutput,
-			gradinput3, gradflow_weights,
-			self.threshhold,
-			self.sigma_d,    self.tao_r ,  self.Prowindow
-		)
-		if err != 0 :
-			print(err)
+        err = my_lib.PixelWeightLayer_gpu_backward(
+            self.input3, self.flow_weights,  self.output,
+            gradoutput,
+            gradinput3, gradflow_weights,
+            self.threshhold,
+            self.sigma_d,    self.tao_r ,  self.Prowindow
+        )
+        if err != 0 :
+            print(err)
 
         # print("from 3:")
         # print(gradinput3[0,0,...])
 
         return gradinput3, gradflow_weights
-		
+        
 #class ReliableValueLayer(Function):
 #    def __init__(self, Nw =3, tao_r =0.05, Prowindow = 2 ):
 #        super(ReliableValueLayer,self).__init__()
@@ -359,20 +359,20 @@ class ReliableWeightLayer(Function):
         self.input3 = input3.contiguous() # ref1 flow
         # self.flow_weight1 = flow_weight1.contiguous() # ref1 flow weights
 
-		self.device = torch.cuda.current_device()
+        self.device = torch.cuda.current_device()
 
         output =  torch.zeros([input3.size(0), 1, input3.size(2), input3.size(3)] )
         # output2 =  torch.zeros(input1.size())
         # weight1 =  torch.zeros(input1.size())
         # weight2 =  torch.zeros(input1.size())
 
-		output = output.cuda()            
-		err = my_lib.ReliableWeightLayer_gpu_forward(
-			input3, output,
-			self.sigma_d,    self.tao_r ,  self.Prowindow
-		)
-		if err != 0 :
-			print(err)
+        output = output.cuda()            
+        err = my_lib.ReliableWeightLayer_gpu_forward(
+            input3, output,
+            self.sigma_d,    self.tao_r ,  self.Prowindow
+        )
+        if err != 0 :
+            print(err)
         self.output= output # used for inihibiting some unreliable gradients.
         # the function returns the output to its caller
         return output
@@ -387,20 +387,20 @@ class ReliableWeightLayer(Function):
         gradinput3 = torch.zeros(self.input3.size())
         # gradflow_weight1 = torch.zeros(self.flow_weight1.size())
         
-		# gradinput1 = gradinput1.cuda(self.device)
-		# gradinput2 = gradinput2.cuda(self.device)
-		gradinput3 = gradinput3.cuda(self.device)
-		# gradflow_weight1 = gradflow_weight1.cuda(self.device)
+        # gradinput1 = gradinput1.cuda(self.device)
+        # gradinput2 = gradinput2.cuda(self.device)
+        gradinput3 = gradinput3.cuda(self.device)
+        # gradflow_weight1 = gradflow_weight1.cuda(self.device)
 
-		err = my_lib.ReliableWeightLayer_gpu_backward(
-			 self.input3,   self.output,
-			 gradoutput,
-			 gradinput3,
-			 self.threshhold,
-			 self.sigma_d,    self.tao_r ,  self.Prowindow
-		)
-		if err != 0 :
-			print(err)
+        err = my_lib.ReliableWeightLayer_gpu_backward(
+            self.input3,   self.output,
+            gradoutput,
+            gradinput3,
+            self.threshhold,
+            self.sigma_d,    self.tao_r ,  self.Prowindow
+        )
+        if err != 0 :
+            print(err)
         # print("from 4:")
         # print(gradinput3[0,0,...])
 
