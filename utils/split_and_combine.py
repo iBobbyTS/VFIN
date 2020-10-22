@@ -32,7 +32,7 @@ def split_is(in_path, out_path, x_split, y_split):
             os.makedirs(f'{out_path}/{i}_{j}')
     files = listdir(in_path)
     height, width = cv2.imread(f'{in_path}/{files[0]}').shape[0:2]
-    splitions = calculate_splition(height, width, 4, 2)
+    splitions = calculate_splition(height, width, y_split, x_split)
     count_length = len(str(len(files)))
     for file_index, file in enumerate(files):
         img = cv2.imread(f'{in_path}/{file}')
@@ -76,11 +76,11 @@ def combine_is(in_path, out_path, x_split, y_split, height, width):
 
     files = sorted(listdir(f'{in_path}/0_0'))
     file_count = len(files)
-    for frame_name in files:
+    for index, frame_name in enumerate(files):
         out_img = numpy.zeros((height, width, 3), 'uint8')
         for folder_name, lt, lo in zip(folder_names, locating_t, locating_o):
             replace_img = cv2.imread(f'{in_path}/{folder_name}/{frame_name}')
             out_img[lt[2]:lt[3], lt[0]:lt[1]] = replace_img[lo[2]:lo[3], lo[0]:lo[1]]
         cv2.imwrite(f'{out_path}/{frame_name}', out_img)
-        print(f'\r{int(frame_name.split(".")[0]) + 1}/{file_count}', end='', flush=True)
+        print(f'\r{index}/{file_count}', end='', flush=True)
 
