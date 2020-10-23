@@ -7,7 +7,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--ffmpeg_dir', type=str, default='', help='path to ffmpeg.exe')
 parser.add_argument('--videos_folder', type=str, required=True, help='path to the folder containing videos')
 parser.add_argument('--dataset_folder', type=str, required=True, help='path to the output dataset folder')
-parser.add_argument('--continue_process', type=str, default='False', help='path to the output dataset folder')
+parser.add_argument('--continue_process', type=str, default='False', choices=['False', 'True'],
+                    help='path to the output dataset folder')
 parser.add_argument('--img_width', type=int, default=360, help='output image width')
 parser.add_argument('--img_height', type=int, default=640, help='output image height')
 parser.add_argument('--train_test_val_split', type=tuple, default=(70, 20, 10),
@@ -32,10 +33,10 @@ if args.continue_process == 'False' and os.path.exists(args.dataset_folder):
         exit(1)
 
 
-extractPath = os.path.join(args.dataset_folder, "extracted")
-trainPath = os.path.join(args.dataset_folder, "train")
-testPath = os.path.join(args.dataset_folder, "test")
-validationPath = os.path.join(args.dataset_folder, "validation")
+extractPath = os.path.join(args.dataset_folder, 'extracted')
+trainPath = os.path.join(args.dataset_folder, 'train')
+testPath = os.path.join(args.dataset_folder, 'test')
+validationPath = os.path.join(args.dataset_folder, 'validation')
 
 if args.continue_process == 'False':
     os.makedirs(args.dataset_folder)
@@ -49,7 +50,7 @@ for i, video in enumerate(videos):
     video_extraction_path = os.path.join(extractPath, video.split('.')[0])
     os.mkdir(video_extraction_path)
     os.system(f"{os.path.join(args.ffmpeg_dir, 'ffmpeg')} -loglevel error "
-              f"-i '{os.path.join(args.videos_folder, video)}' -vsync 0 -s 50x50 "
+              f"-i '{os.path.join(args.videos_folder, video)}' -vsync 0 "
               f"-q:v 2 '{video_extraction_path}/%09d.jpg'")
     video_frames[video] = listdir(video_extraction_path)
     print(f'\rProcessed {i+1}/{len(videos)}: {video}', end='', flush=True)
@@ -71,11 +72,9 @@ for tmp in test_set:
 
 video_frames = list(video_frames.values())
 if args.continue_process == 'True':
-    print(args.dataset_folder)
     val_test_train_count = [len(listdir(f'{args.dataset_folder}/{folder}')) for folder in ['validation', 'test', 'train']]
 else:
     val_test_train_count = [0, 0, 0]
-print(val_test_train_count)
 
 for section_index, section in enumerate(total_section):
     if len(video_frames[0]) < 12:
