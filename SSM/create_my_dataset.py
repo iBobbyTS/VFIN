@@ -7,13 +7,13 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--ffmpeg_dir', type=str, default='', help='path to ffmpeg.exe')
 parser.add_argument('--videos_folder', type=str, required=True, help='path to the folder containing videos')
 parser.add_argument('--dataset_folder', type=str, required=True, help='path to the output dataset folder')
+parser.add_argument('--continue_process', type=str, default='False', help='path to the output dataset folder')
 parser.add_argument('--img_width', type=int, default=360, help='output image width')
 parser.add_argument('--img_height', type=int, default=640, help='output image height')
 parser.add_argument('--train_test_val_split', type=tuple, default=(70, 20, 10),
                     help='train test split for custom dataset')
+
 args = parser.parse_args()
-args.videos_folder = '/Users/ibobby/Dataset/iBobby_240fps'
-args.dataset_folder = '/Users/ibobby/Dataset/iBobby_240fps_SSM'
 
 
 def listdir(path):
@@ -25,19 +25,23 @@ def listdir(path):
     return files
 
 
-if os.path.exists(args.dataset_folder):
+if args.continue_process == 'False' and os.path.exists(args.dataset_folder):
     if input('dataset_folder exists, delete? [y, n]: ').lower() == 'y':
         rmtree(args.dataset_folder)
     else:
         exit(1)
 
-os.makedirs(args.dataset_folder)
+
 extractPath = os.path.join(args.dataset_folder, "extracted")
 trainPath = os.path.join(args.dataset_folder, "train")
 testPath = os.path.join(args.dataset_folder, "test")
 validationPath = os.path.join(args.dataset_folder, "validation")
-for folder in ['extracted', 'train', 'test', 'validation']:
-    os.mkdir(f'{args.dataset_folder}/{folder}')
+
+if args.continue_process == 'False':
+    os.makedirs(args.dataset_folder)
+    for folder in ['train', 'test', 'validation']:
+        os.mkdir(f'{args.dataset_folder}/{folder}')
+os.mkdir(f'{args.dataset_folder}/extracted')
 
 videos = listdir(args.videos_folder)
 video_frames = {}
@@ -45,7 +49,7 @@ for i, video in enumerate(videos):
     video_extraction_path = os.path.join(extractPath, video.split('.')[0])
     os.mkdir(video_extraction_path)
     os.system(f"{os.path.join(args.ffmpeg_dir, 'ffmpeg')} -loglevel error "
-              f"-i '{os.path.join(args.videos_folder, video)}' -vsync 0 "
+              f"-i '{os.path.join(args.videos_folder, video)}' -vsync 0 -s 50x50 "
               f"-q:v 2 '{video_extraction_path}/%09d.jpg'")
     video_frames[video] = listdir(video_extraction_path)
     print(f'\rProcessed {i+1}/{len(videos)}: {video}', end='', flush=True)
@@ -66,7 +70,13 @@ for tmp in test_set:
     train_set.remove(tmp)
 
 video_frames = list(video_frames.values())
-val_test_train_count = [0, 0, 0]
+if args.continue_process == 'True':
+    print(args.dataset_folder)
+    val_test_train_count = [len(listdir(f'{args.dataset_folder}/{folder}')) for folder in ['validation', 'test', 'train']]
+else:
+    val_test_train_count = [0, 0, 0]
+print(val_test_train_count)
+
 for section_index, section in enumerate(total_section):
     if len(video_frames[0]) < 12:
         video_frames.pop(0)
@@ -93,3 +103,4 @@ for section_index, section in enumerate(total_section):
         video_frames[0].remove(frame)
     print(f'\r{section_index + 1}/{total_section_count}', end='', flush=True)
 print()
+rmtree(extractPath)
