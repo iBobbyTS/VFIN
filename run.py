@@ -167,29 +167,10 @@ def video_pre_process(video_path, current_temp_file_path, sf, fps, process_type)
             'target_fps': target_fps, 'sf': sf}
 
 
-def is_pre_process(img_sequence_path, current_temp_file_path, fps, sf):
-    os.mkdir(f'{current_temp_file_path}/in')
-    files = listdir(img_sequence_path)
-    frame_count = len(files)
+def is_npz_pre_process(in_sequence_path, current_temp_file_path, fps, sf):
+    frame_count = len(listdir(in_sequence_path))
     frame_count_len = len(str(frame_count))
-    for file in files:
-        frame = cv2.imread(f'{img_sequence_path}/{file}')
-        numpy.savez_compressed(f'{current_temp_file_path}/in/{os.path.splitext(file)[0]}', frame)
-    if fps:
-        target_fps = fps
-    else:
-        target_fps = 60
-    return {'frame_count': frame_count, 'frame_count_len': frame_count_len, 'target_fps': target_fps, 'sf': sf}
-
-
-def npz_pre_process(npz_path, current_temp_file_path, fps, sf):
-    shutil.copytree(npz_path, f'{current_temp_file_path}/in')
-    frame_count = len(listdir(npz_path))
-    frame_count_len = len(str(frame_count))
-    if fps:
-        target_fps = fps
-    else:
-        target_fps = 60
+    target_fps = fps if fps else 60
     return {'frame_count': frame_count, 'frame_count_len': frame_count_len, 'target_fps': target_fps, 'sf': sf}
 
 
@@ -197,10 +178,8 @@ def pre_process(cag_, args_):
     if cag_['input_type'] == 'video':
         cag_add_ = video_pre_process(cag_['input_file_path'], cag_['current_temp_file_path'], args_['sf'], args_['fps'],
                                      args_['process_type'])
-    if cag_['input_type'] == 'is':
-        cag_add_ = is_pre_process(cag_['input_file_path'], cag_['current_temp_file_path'], args_['fps'], args_['sf'])
-    if cag_['input_type'] == 'npz':
-        cag_add_ = npz_pre_process(cag_['input_file_path'], cag_['current_temp_file_path'], args_['fps'], args_['sf'])
+    else:
+        cag_add_ = is_npz_pre_process(cag_['input_file_path'], cag_['current_temp_file_path'], args_['fps'], args_['sf'])
     return dict(cag_, **cag_add_)  # Merge dictionaries.
 
 
@@ -225,7 +204,7 @@ def set_empty_cache(empty_cache):
 
 def read_cag(cag_path):
     with open(cag_path, 'r') as f_:
-        cag = json.load(f_)
+        cag_ = json.load(f_)
     return cag_
 
 
@@ -276,10 +255,6 @@ def npz2tif(npz_path, tiff_path):  # 把npz转成tiff
 args = args.__dict__
 model_path = {'DAIN': 'DAIN/model_weights/best.pth', 'SSM': 'SSM/SuperSloMo.ckpt'}
 
-# Setup
-sys.path.append(f"{os.path.abspath(args['algorithm'])}")
-from interpolate import main
-
 input_type = detect_input_type(args['input'])  # 把要处理的一个或多个视频放入一个列表
 if input_type == 'mix':
     processes = listdir(args['input'])
@@ -328,10 +303,13 @@ for process in processes:
     else:  # Continue Processing
         cag = read_cag(process)
     # Set interpolation_start_frame
-    cag['interpolation_start_frame'] = 0 if input_type != 'continue' else len(listdir(cag[f"{cag['current_temp_file_path']}/out"]))// cag['sf']
+    cag['interpolation_start_frame'] = 0 if input_type != 'continue' else len(listdir(f"{cag['current_temp_file_path']}/out"))// cag['sf']
     
     # Set environment variable
     set_empty_cache(cag['empty_cache'])
+    # Setup
+    sys.path.append(f"{os.path.abspath(cag['algorithm'])}")
+    from interpolate import main
     # Model checking
     if cag['model_path'] == 'default':  # 模型路径
         cag['model_path'] = model_path[cag['algorithm']]
