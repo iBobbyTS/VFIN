@@ -1,7 +1,9 @@
+import time
+everything_start_time = time.time()
 import os
 import sys
 import shutil
-import time
+import json
 import math
 import random
 import argparse
@@ -20,6 +22,7 @@ parser.add_argument('-o', '--output',  # Output file
 parser.add_argument('-ot', '--output_type',  # Output file type
                     type=str, choices=['video', 'is', 'npz'], default='npz',
                     help='Output file type, -o needs to be a file and image sequence or npz needs to be a folder')
+
 # Process type
 parser.add_argument('-a', '--algorithm', type=str, default='SSM',  # 算法
                     choices=['DAIN', 'SSM'], help='DAIN or SSM')
@@ -51,6 +54,9 @@ parser.add_argument('-fd', '--ffmpeg_dir',  # FFmpeg路径
 parser.add_argument('-vc', '--vcodec',  # 视频编码
                     type=str, default='h264',
                     help='Video codec')
+parser.add_argument('-br', '--bit_rate',  # 视频编码
+                    type=str, default='100M',
+                    help='Bit rate for output video')
 # Other
 parser.add_argument('-mc', '--mac_compatibility',  # 让苹果设备可以直接播放
                     type=bool, default=True,
@@ -98,7 +104,7 @@ def listdir(folder):  # 输入文件夹路径，输出文件夹内的文件，�
 
 def detect_input_type(input_dir):  # 检测输入类型
     if os.path.isfile(input_dir):
-        if os.path.splitext(input_dir)[1].lower() == '.txt':
+        if os.path.splitext(input_dir)[1].lower() == '.json':
             input_type = 'continue'
         else:
             input_type = 'video'
@@ -139,22 +145,12 @@ def create_temp_folder(temp_file_path, filename):
 
 
 def video_pre_process(video_path, current_temp_file_path, sf, fps, process_type):
-    os.mkdir(f'{current_temp_file_path}/in')
     cap = cv2.VideoCapture(video_path)
     frame_count = int(cap.get(7))
     frame_count_len = len(str(frame_count))
     original_fps = cap.get(5)
-
-    count = 1
-    while True:
-        rtl, frame = cap.read()
-        if rtl:
-            numpy.savez_compressed(f'{current_temp_file_path}/in/{str(count).zfill(frame_count_len)}', frame)
-        else:
-            break
-        count += 1
-
     cap.release()
+
     # sf
     if process_type == 'general':
         sf = sf
@@ -229,10 +225,7 @@ def set_empty_cache(empty_cache):
 
 def read_cag(cag_path):
     with open(cag_path, 'r') as f_:
-        cag_ = eval(f_.read())
-    processed_frame_count_ = len(listdir(f'{cag_["current_temp_file_path"]}/out'))
-    start_frame_ = int(processed_frame_count_ // cag_['sf'])
-    cag_['frames_to_process'] = cag_['original_frames_to_process'][start_frame_:]
+        cag = json.load(f_)
     return cag_
 
 
@@ -245,9 +238,11 @@ def check_output_dir(set_output, filename, sf, output_type):
         output_dir_ = os.path.splitext(set_output)[0]
     # Check output name
     if output_type == 'video':
-        if set_output == 'default':
+        print(set_output == 'default', os.path.splitext(set_output)[1])
+        if set_output == 'default' or not os.path.splitext(set_output)[1]:
             if filename[2]:
                 ext = filename[2]
+                print('dj')
             else:
                 ext = '.mp4'
         else:
@@ -281,6 +276,10 @@ def npz2tif(npz_path, tiff_path):  # 把npz转成tiff
 args = args.__dict__
 model_path = {'DAIN': 'DAIN/model_weights/best.pth', 'SSM': 'SSM/SuperSloMo.ckpt'}
 
+# Setup
+sys.path.append(f"{os.path.abspath(args['algorithm'])}")
+from interpolate import main
+
 input_type = detect_input_type(args['input'])  # 把要处理的一个或多个视频放入一个列表
 if input_type == 'mix':
     processes = listdir(args['input'])
@@ -288,7 +287,8 @@ if input_type == 'mix':
 else:
     processes = [args['input']]
 for process in processes:
-    if detect_input_type(process) != 'continue':  # If not continue
+    input_type = detect_input_type(process)
+    if input_type != 'continue':  # If not continue
         cag = {'model_path': args['model_path'],
                'algorithm': args['algorithm'],
                'reinitialize': args['reinitialize'], 
@@ -299,10 +299,12 @@ for process in processes:
                'output_type': args['output_type'],
                'remove_temp_file': args['remove_temp_file'],
                'empty_cache': args['empty_cache'],
+               'input_type': input_type,
                # FFmpeg
                'ffmpeg_dir': args['ffmpeg_dir'],
                'vcodec': args['vcodec'], 
                'mac_compatibility': args['mac_compatibility'],  # pix_fmt yuv420p
+               'bit_rate': args['bit_rate'],
                # DAIN
                'net_name': args['net_name'],
                'save_which': args['save_which'],
@@ -322,12 +324,11 @@ for process in processes:
         cag = pre_process(cag, args)
         # Start/End frame
         cag['start_frame'], cag['end_frame'], cag['copy'] = process_start_end_frame(cag['start_frame'], cag['end_frame'], cag['frame_count'])
-        # Frames to process
-        cag['original_frames_to_process'] = listdir(f'{cag["current_temp_file_path"]}/in')[cag['start_frame'] - 1:cag['end_frame']]
-        cag['frames_to_process'] = cag['original_frames_to_process']
 
     else:  # Continue Processing
         cag = read_cag(process)
+    # Set interpolation_start_frame
+    cag['interpolation_start_frame'] = 0 if input_type != 'continue' else len(listdir(cag[f"{cag['current_temp_file_path']}/out"]))// cag['sf']
     
     # Set environment variable
     set_empty_cache(cag['empty_cache'])
@@ -340,32 +341,11 @@ for process in processes:
         exit(1)
 
     # Log
-    with open(f'{cag["current_temp_file_path"]}/process_info.txt', 'w') as f:
-        f.write(str(cag))
+    with open(f'{cag["current_temp_file_path"]}/process_info.json', 'w') as f:
+         json.dump(cag, f)
 
     # Process
-    t = time.time()
-    # main(f'{cag["current_temp_file_path"]}/process_info.txt')
-    frames_to_process = cag['frames_to_process']
-    if cag['reinitialize']:
-        for i in range(len(frames_to_process) - 1):
-            cag['frames_to_process'] = frames_to_process[i: i + 2]
-            if os.system(f"{sys.executable} -c \"import sys; sys.path.append('{os.path.abspath(cag['algorithm'])}'); from interpolate import main; main('''{cag}''')\""):
-              exit(1)
-            
-    else:
-        if os.system(f"{sys.executable} -c \"import sys; sys.path.append('{os.path.abspath(cag['algorithm'])}'); from interpolate import main; main('''{cag}''')\""):
-          exit(1)
-    print(f'\nInterpolation spent {round(time.time() - t, 2)}s')
-
-    # Copy
-    original = f'{cag["current_temp_file_path"]}/in/{cag["original_frames_to_process"][-1]}'
-    print(cag['copy'])
-    if cag['copy']:
-        # Copy last frame
-        for i in range(1, cag['sf']):
-            target = f'{cag["current_temp_file_path"]}/out/{cag["original_frames_to_process"][-1].replace(".npz", "")}_{str(i).zfill(len(str(cag["sf"] - 1)))}.npz'
-            shutil.copyfile(original, target)
+    main(cag)
 
     output_dir = check_output_dir(cag['output'], cag["input_file_name_list"], cag["sf"], cag['output_type'])
 
@@ -373,17 +353,14 @@ for process in processes:
         # Mac compatibility
         pix_fmt = ' -pix_fmt yuv420p' if cag['mac_compatibility'] else ''
         npz2tif(f"{cag['current_temp_file_path']}/out", f"{cag['current_temp_file_path']}/tiff")
-        # Check file extension
+        # Execute command
+        cmd = [f"'{os.path.join(cag['ffmpeg_dir'], 'ffmpeg')}' -loglevel error ",
+               f"-vsync 0 -r {cag['target_fps']} -pattern_type glob -i '{cag['current_temp_file_path']}/tiff/*.tiff' ",
+               f"-vcodec {cag['vcodec']}{pix_fmt} -b {cag['bit_rate']} '{output_dir}'"]
         if cag['input_type'] == 'video' and cag['start_frame'] == 1 and cag['end_frame'] == 0:
-            cmd = f'"{os.path.join(cag["ffmpeg_dir"], "ffmpeg")}" -loglevel error ' \
-                  f'-thread_queue_size 128 ' \
-                  f'-vsync 0 -r {cag["target_fps"]} -pattern_type glob -i "{cag["current_temp_file_path"]}/tiff/*.tiff" ' \
-                  f'-vn -i "{cag["temp_folder"]}/in{cag["filename"][2]}" ' \
-                  f'-vcodec {cag["vcodec"]}{pix_fmt} -b 100M "{output_dir}"'
-        else:
-            cmd = f'"{os.path.join(cag["ffmpeg_dir"], "ffmpeg")}" -loglevel error ' \
-                  f'-vsync 0 -r {cag["target_fps"]} -pattern_type glob -i "{cag["current_temp_file_path"]}/tiff/*.tiff" ' \
-                  f'-vcodec {cag["vcodec"]}{pix_fmt} -b 100M "{output_dir}"'
+            cmd.insert(1, '-thread_queue_size 128 ')
+            cmd.insert(3, f"-vn -i '{cag['temp_folder']}/in{cag['filename'][2]}' ")
+        cmd = ''.join(cmd)
         print(cmd)
         os.system(cmd)
     if cag['output_type'] == 'is':
@@ -393,3 +370,8 @@ for process in processes:
 
     if cag['remove_temp_file']:
         shutil.rmtree(cag["current_temp_file_path"])
+
+
+m, s = divmod(time.time() - everything_start_time, 60)
+h, m = divmod(m, 60)
+print(f'\nSpent %d:%02d:%02d in total' % (h, m, s))
