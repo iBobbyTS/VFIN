@@ -303,7 +303,7 @@ for process in processes:
     else:  # Continue Processing
         cag = read_cag(process)
     # Set interpolation_start_frame
-    cag['interpolation_start_frame'] = 0 if input_type != 'continue' else len(listdir(f"{cag['current_temp_file_path']}/out"))// cag['sf']
+    cag['interpolation_start_frame'] = 0 if input_type != 'continue' else len(listdir(f"{cag['current_temp_file_path']}/out")) // cag['sf'] - 1
     
     # Set environment variable
     set_empty_cache(cag['empty_cache'])
