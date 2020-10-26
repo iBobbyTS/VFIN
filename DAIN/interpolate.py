@@ -105,7 +105,7 @@ def main(process_info):
     try:
         X1_ori = torch.cuda.FloatTensor(video.get())[:, :, :3].permute(2, 0, 1) / 255
         empty_cache()
-        for _ in range(process_info['interpolation_start_frame'], frame_count):
+        for _ in range(process_info['interpolation_start_frame'], frame_count + process_info['interpolation_start_frame']):
             X0 = X1_ori
             X1 = torch.cuda.FloatTensor(video.get())[:, :, :3].permute(2, 0, 1) / 255
             empty_cache()
@@ -197,5 +197,6 @@ def main(process_info):
         exit(1)
     # Copy
     if process_info['copy']:
-        for i in range(1, process_info['sf']+1):
-            numpy.savez_compressed(f'{process_info["current_temp_file_path"]}/out/{str(frame_count).zfill(frame_count_len)}_{str(i).zfill(sf_length)}', numpy.round(X1).astype('uint8'))
+        for i in range(0, process_info['sf']):
+            numpy.savez_compressed(f"{process_info['current_temp_file_path']}/out/{str(frame_count + process_info['interpolation_start_frame']).zfill(frame_count_len)}_{str(i).zfill(sf_length)}", numpy.round(X1).astype('uint8'))
+    print()
