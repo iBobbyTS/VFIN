@@ -27,11 +27,12 @@ class data_loader(object):
         self.start_frame = start_frame
         if input_type == 'video':
             self.cap = cv2.VideoCapture(input_dir)
-            self.file_count = int(self.cap.get(7))
+            self.cap.set(1, self.start_frame)
+            self.file_count = int(self.cap.get(7) - self.start_frame)
         else:
             self.count = -1
             self.files = listdir(input_dir)[self.start_frame:]
-            self.file_count = len(self.files) 
+            self.file_count = len(self.files)
 
     def get(self):  # get frame
         if self.input_type == 'video':
@@ -171,7 +172,6 @@ def main(process_info):
             empty_cache()
             interpolated_frame_number = 0
             numpy.savez_compressed(f"{process_info['current_temp_file_path']}/out/{str(_).zfill(frame_count_len)}_{'0'.zfill(sf_length)}", numpy.round(X0).astype('uint8'))
-            print(f"{process_info['current_temp_file_path']}/out/{str(_).zfill(frame_count_len)}_{'0'.zfill(sf_length)}")
             for item, time_offset in zip(y_, time_offsets):
                 interpolated_frame_number += 1
                 numpy.savez_compressed(f'{process_info["current_temp_file_path"]}/out/{str(_).zfill(frame_count_len)}_{str(interpolated_frame_number).zfill(sf_length)}',
