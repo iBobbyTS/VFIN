@@ -37,30 +37,14 @@ Combination of [DAIN](https://github.com/baowenbo/DAIN), [Super SloMo(SSM)](http
 ### Requirements and Dependencies
 - General
 	- FFmpeg
-	- NVIDIA GPU (We test with: [These GPUs](https://github.com/iBobbyTS/VFIN/GPU)
+	- NVIDIA GPU (We test with: P100, P4, T4, K80)
 - DAIN
-	- Ubuntu (We test with:
-		- Ubuntu = 16.04.5 LTS
-		- Ubuntu = 18.04.5 LTS)
-	- Python (We test with: 
-		- Python = 3.6.8 in Anaconda3 = 4.1.1
-		- Python = 3.6.12)
-	- Cuda and/or Cudnn (We test with:
-		- Cuda = 9.0 and Cudnn = 7.0
-		- Cuda = 10.1)
-	- PyTorch (The customized depth-aware flow projection and other layers require ATen API in PyTorch = 1.0.0) (We test with:
-		- PyTorch = 1.0.0
-		- Pytorch = 1.4.0)
+	- Ubuntu (We test with Ubuntu = 18.04.5 LTS)
+	- Python (We test with: Python = 3.6.12)
+	- Cuda and/or Cudnn (We test with: - Cuda = 10.1)
+	- PyTorch >= 1.0.0, <= 1.4.0
 	- GCC (Compiling PyTorch 1.0.0 extension files (.c/.cu) requires gcc = 4.9.1 and nvcc = 9.0 compilers)
-	- NVIDIA GPU (We use Titan X (Pascal) with compute = 6.1, but we support compute_50/52/60/61 devices, should you have devices with higher compute capability, please revise [this](https://github.com/baowenbo/DAIN/blob/master/my_package/DepthFlowProjection/setup.py))
 - SSM
 	- Ubuntu (We test with Ubuntu = 18.04.5 LTS)
 	- Python (We test with Python = 3.6.12)
-	- PyTorch >= 0.4.1 (We test with:
-		- Pytorch = 1.4.0
-		- PyTorch = 1.6.0)
-	- If you're using GPU
-		- Cuda (We test with:
-			- Cuda = 9.2
-			- Cuda = 10.1)
-		- NVIDIA GPU
+	- PyTorch >= 0.4.1 (We test with: PyTorch = 1.6.0)
