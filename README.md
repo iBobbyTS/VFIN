@@ -47,7 +47,7 @@ Combination of [DAIN](https://github.com/baowenbo/DAIN), [Super SloMo(SSM)](http
 - SSM
 	- Ubuntu (We test with Ubuntu = 18.04.5 LTS)
 	- Python (We test with Python = 3.6.12)
-	- PyTorch >= 0.4.1 (We test with: PyTorch = 1.6.0)
+	- PyTorch >= 0.4.1, <= 1.7.0
 
 
 ### Installation
