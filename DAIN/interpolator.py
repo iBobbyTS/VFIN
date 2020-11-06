@@ -62,12 +62,11 @@ class Interpolator:
         X1 = self.pader(Variable(torch.unsqueeze(self.ndarray2tensor(frames[1]), 0)))
         empty_cache()
 
-        y_s, offset, filter = self.model(torch.stack((X0, X1), dim=0))
+        y_ = self.model(torch.stack((X0, X1), dim=0))[0]
         empty_cache()
-        y_ = y_s[self.save_which]
-
-        y_ = [[(255 * item).clamp(0.0, 255.0).byte()[0, :, self.vs:self.ve, self.hs:self.he]
-                   .permute(1, 2, 0).cpu().numpy()] for item in y_]
+        y_ = y_[self.save_which]
+        y_ = [[(255*item).clamp(0.0, 255.0).byte()[0, :, self.vs:self.ve,self.hs:self.he]
+                        .permute(1, 2, 0).cpu().numpy()] for item in y_]
         empty_cache()
 
         return y_
