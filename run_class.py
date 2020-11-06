@@ -251,7 +251,7 @@ for input_file_path in processes:
             else:
                 ext = '.mp4'
         else:
-            ext = ''
+            ext = os.path.splitext(output_dir)[1]
         output_dir = check_output_dir(output_dir, ext)
         if output_type == 'video':
             dest_path = check_output_dir(os.path.splitext(output_dir)[0], ext)
