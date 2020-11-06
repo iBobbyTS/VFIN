@@ -307,7 +307,7 @@ for input_file_path in processes:
     sys.path.append(f"{os.path.abspath(cag['algorithm'])}")
     from interpolator import Interpolator
     # Interpolate
-    interpolator = Interpolator(cag['model_path'], cag['sf'], cag['height'], cag['width'], batch_size=1)
+    interpolator = Interpolator(cag['model_path'], cag['sf'], int(cag['height']), int(cag['width']), batch_size=1, save_which=1, net_name='DAIN_slowmotion', channel=3)
     save = data_writer(cag['output_type'])
     batch = [video.read()]
     timer = 0
