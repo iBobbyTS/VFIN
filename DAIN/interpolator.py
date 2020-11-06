@@ -65,11 +65,9 @@ class Interpolator:
         y_s, offset, filter = self.model(torch.stack((X0, X1), dim=0))
         empty_cache()
         y_ = y_s[self.save_which]
-        if isinstance(y_, list):
-            y_ = [item.data.cpu().numpy() for item in y_]
-        else:
-            y_ = [y_.data.cpu().numpy()]
-        y_ = [numpy.transpose(255.0 * item.clip(0, 1.0)[0, :, self.vs:self.ve,self.hs:self.he]
-                              , (1, 2, 0)) for item in y_]
+
+        y_ = [[(255 * item).clamp(0.0, 255.0).byte()[0, :, self.vs:self.ve, self.hs:self.he]
+                   .permute(1, 2, 0).cpu().numpy()] for item in y_]
         empty_cache()
+
         return y_
