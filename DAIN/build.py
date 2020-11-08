@@ -16,12 +16,6 @@ parser.add_argument('-o', '--output', type=str, default='default', help='tar')
 args = parser.parse_args()
 
 dain_root = os.getcwd()
-# Check output dir
-if args.output == 'default':
-    tar = tarfile.open(f'{dain_root}/wheels.tar', 'w')
-else:
-    os.makedirs('/'.join(args.output.split('/')[:-1], exist_ok=True))
-    tar = tarfile.open(args.output if args.output[-4:] == '.tar' else (args.output + '.tar'), 'w')
 
 # Check PyTorch Version
 python_executable = sys.executable
@@ -34,8 +28,14 @@ if torch_version_split[0] is '0':
 elif int(torch_version_split[0]) > 1 or int(torch_version_split[1]) > 4:
     raise RuntimeError(prefix + torch_version + ' > 1.4.0')
 
-# Check if wheel is installed if building wheels
 if args.build_type == 'bdist_wheel':
+    # Check output dir
+    if args.output == 'default':
+        tar = tarfile.open(f'{dain_root}/wheels.tar', 'w')
+    else:
+        os.makedirs('/'.join(args.output.split('/')[:-1], exist_ok=True))
+        tar = tarfile.open(args.output if args.output[-4:] == '.tar' else (args.output + '.tar'), 'w')
+    # Check if wheel is installed
     try:
         import wheel
     except ImportError:
@@ -75,4 +75,5 @@ if args.build_type == 'bdist_wheel':
     tar.add('PWCNet/correlation_package_pytorch1_0/dist/' + whl, whl)
 for file_to_delete in terms_to_delete('PWCNet/correlation_package_pytorch1_0'):
     shutil.rmtree(f'PWCNet/correlation_package_pytorch1_0/{file_to_delete}')
-tar.close()
+if args.build_type == 'bdist_wheel':
+    tar.close()
