@@ -56,15 +56,15 @@ Combination of [DAIN](https://github.com/baowenbo/DAIN), [Super SloMo(SSM)](http
 Install dependencies:
 
 	# Python
-	pip install Pillow numpy opencv-python click tensorboardX future h5py dominate scikit-image==0.16.2 scipy==1.0.0 functions visdom
+	pip install numpy opencv-python
 	# Change the cuda version to your version. ex. CUDA 9.2: +cu92, or CPU, +cpu
-	pip install torch==1.4.0+cu101 torchvision==0.5.0+cu101 -f https://download.pytorch.org/whl/torch_stable.html
+	pip install torch==1.4.0+cu101 -f https://download.pytorch.org/whl/torch_stable.html
 	
 	# Conda (Anaconda/Miniconda)
-	conda install Pillow numpy click future h5py scipy==1.0.0 scikit-image==0.16.12 -y
-	pip install dominate opencv-python functions visdom opencv-python tensorboardX
+	conda install numpy -y
+	pip install opencv-python
 	# Change cudatoolkit to your version
-	conda install pytorch==1.4.0 torchvision==0.5.0 cudatoolkit=10.1 -c pytorch -y
+	conda install pytorch==1.4.0 cudatoolkit=10.1 -c pytorch -y
 	
 Download repository:
 
@@ -72,11 +72,12 @@ Download repository:
 	cd VFIN
     
 Generate our PyTorch extensions: (This will take approximately 20 minuets)
+Check [build.py](https://github.com/iBobbyTS/VFIN/blob/master/DAIN/build.py) for args available. 
     
 	cd DAIN
-	./build.sh
+	python build.py
 	cd ..
-    
+
 Download pretrained models, 
 
 	# DAIN
