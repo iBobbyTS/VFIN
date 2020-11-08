@@ -42,8 +42,9 @@ class Interpolator:
         self.ndarray2tensor = {True: self.ndarray2cuda_tensor,
                                False: self.ndarray2cpu_tensor
                                }[cuda_availability]
-        self.tensor2ndarray = {True: None,
-                               False: lambda frames: numpy.transpose((numpy.array(frames) / 255).astype(numpy.uint8)
+        self.tensor2ndarray = {True: lambda frames: (frames.detach() * 255).byte()
+                                                    [:, :, self.h_w[0]:, self.h_w[1]:].permute(0, 2, 3, 1).cpu().numpy()[:, :, :, ::-1],
+                               False: lambda frames: numpy.transpose((numpy.array(frames.detach().cpu()) * 255).astype(numpy.uint8)
                                                                      [:, ::-1, self.h_w[0]:, self.h_w[1]:], (0, 2, 3, 1))
                                }[cuda_availability]
 
@@ -51,8 +52,8 @@ class Interpolator:
         out_frames = []
         for frame in frames:
             frame = torch.cuda.ByteTensor(frame[:, :, ::-1].copy())
-            frame = torch.cat([torch.zeros((frame.shape[0], self.h_w[1], 3), dtype=torch.cuda.uint8), frame], dim=1)
-            frame = torch.cat([torch.zeros((self.h_w[0], frame.shape[1], 3), dtype=torch.cuda.uint8), frame], dim=0)
+            frame = torch.cat([torch.zeros((frame.shape[0], self.h_w[1], 3)).cuda().byte(), frame], dim=1)
+            frame = torch.cat([torch.zeros((self.h_w[0], frame.shape[1], 3)).cuda().byte(), frame], dim=0)
             out_frames.append(frame.permute(2, 0, 1))
         return torch.stack(out_frames, dim=0).float() / 255
 
