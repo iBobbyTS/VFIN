@@ -33,7 +33,7 @@ if args.build_type == 'bdist_wheel':
     if args.output == 'default':
         tar = tarfile.open(f'{dain_root}/wheels.tar', 'w')
     else:
-        os.makedirs('/'.join(args.output.split('/')[:-1], exist_ok=True))
+        os.makedirs('/'.join(args.output.split('/')[:-1]), exist_ok=True)
         tar = tarfile.open(args.output if args.output[-4:] == '.tar' else (args.output + '.tar'), 'w')
     # Check if wheel is installed
     try:
