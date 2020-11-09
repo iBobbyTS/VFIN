@@ -1,7 +1,7 @@
 # VFIN (Video Frame INterpolation)
 Combination of [DAIN](https://github.com/baowenbo/DAIN), [Super SloMo(SSM)](https://github.com/avinashpaliwal/Super-SloMo), [BIN](https://github.com/laomao0/BIN) and more coming together. Now SSM is developed, DAIN is almost done and BIN is still be working on. 
 
-[Colab Demo](https://colab.research.google.com/drive/1QpNXP8r6HgrBdm7IEpMTA7zC2WAplrCh?usp=sharing)
+[Colab Demo](https://drive.google.com/drive/folders/1FWgdEgJxObQtl002ooIq94mlzGUYe6G-?usp=sharing)
 
 ### Table of Contents
 1. [Citation](#citation)
