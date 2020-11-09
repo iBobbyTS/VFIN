@@ -56,9 +56,9 @@ os.chdir('my_package')
 folders = [folder for folder in sorted(os.listdir('.')) if os.path.isdir(folder)]
 for folder in folders:
     os.chdir(f"{'' if folder == folders[0] else '../'}{folder}")
-    os.popen(f'{python_executable} setup.py {args.build_type}')
+    os.system(f'{python_executable} setup.py {args.build_type}')
 os.chdir('../../PWCNet/correlation_package_pytorch1_0')
-os.popen(f'{python_executable} setup.py {args.build_type}')
+os.system(f'{python_executable} setup.py {args.build_type}')
 
 os.chdir(dain_root)
 terms_to_delete = lambda path: ['dist', 'build', [fil for fil in os.listdir(path) if fil[-9:] == '.egg-info'][0]]
