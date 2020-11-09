@@ -11,7 +11,7 @@ import torch
 # Args
 parser = argparse.ArgumentParser()
 parser.add_argument('-bt', '--build_type', type=str, choices=['install', 'develop', 'bdist_wheel'], default='install')
-parser.add_argument('-cc', '--compute_compatibility', type=str, default='20,21,30,35,37,50,52,53,60,61,62,70,72,75,80,86')
+parser.add_argument('-cc', '--compute_compatibility', type=str, default='30,35,37,50,52,53,60,61,62,70,72,75')
 parser.add_argument('-o', '--output', type=str, default='default', help='tar')
 args = parser.parse_args()
 
