@@ -75,5 +75,6 @@ if args.build_type == 'bdist_wheel':
     tar.add('PWCNet/correlation_package_pytorch1_0/dist/' + whl, whl)
 for file_to_delete in terms_to_delete('PWCNet/correlation_package_pytorch1_0'):
     shutil.rmtree(f'PWCNet/correlation_package_pytorch1_0/{file_to_delete}')
+shutil.rmtree('compiler_args.json')
 if args.build_type == 'bdist_wheel':
     tar.close()
