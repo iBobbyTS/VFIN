@@ -49,7 +49,7 @@ for cc in args.compute_compatibility.split(','):
     nvcc_args.append(f'arch=compute_{cc},code=sm_{cc}')
 nvcc_args.append('-w')
 with open('compiler_args.json', 'w') as f:
-    json.dump({'nvcc': nvcc_args, 'cxx': ['-std=c++11', '-w']}, f)
+    json.dump({'nvcc': nvcc_args, 'cxx': ['-std=c++14', '-w']}, f)
 print(f'Compiling for compute compatilility {args.compute_compatibility}')
 
 # Compile
