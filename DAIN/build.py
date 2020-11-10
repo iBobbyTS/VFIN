@@ -10,6 +10,7 @@ import torch
 
 # Args
 parser = argparse.ArgumentParser()
+parser.add_argument('-ap', '--all_packages', type=str, choices=['False', 'True'], default='False', help='......')
 parser.add_argument('-bt', '--build_type', type=str, choices=['install', 'develop', 'bdist_wheel'], default='install')
 parser.add_argument('-cc', '--compute_compatibility', type=str, default='30,35,37,50,52,53,60,61,62,70,72,75')
 parser.add_argument('-o', '--output', type=str, default='default', help='tar')
@@ -54,6 +55,8 @@ print(f'Compiling for compute compatilility {args.compute_compatibility}')
 # Compile
 os.chdir('my_package')
 folders = [folder for folder in sorted(os.listdir('.')) if os.path.isdir(folder)]
+if args.all_packages == 'False':
+    folders = [folder for folder in folders if folder in ['DepthFlowProjection', 'FilterInterpolation', 'FlowProjection']]
 for folder in folders:
     os.chdir(f"{'' if folder == folders[0] else '../'}{folder}")
     os.system(f'{python_executable} setup.py {args.build_type}')
