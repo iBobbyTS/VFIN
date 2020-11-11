@@ -42,8 +42,8 @@ Colab Demo: [Notebooks](https://drive.google.com/drive/folders/1FWgdEgJxObQtl002
 	- NVIDIA GPU (We test with: P100, P4, T4, K80)
 - DAIN
 	- Ubuntu (We test with Ubuntu = 18.04.5 LTS)
-	- Python (We test with: Python = 3.6.12)
-	- Cuda and/or Cudnn (We test with: - Cuda = 10.1)
+	- Python >= 3.6, <= 3.8
+	- CUDA and cuDNN (We test with CUDA = 10.1)
 	- PyTorch >= 1.0.0, <= 1.4.0
 	- GCC (Compiling PyTorch 1.0.0 extension files (.c/.cu) requires gcc = 4.9.1 and nvcc = 9.0 compilers)
 - SSM
@@ -58,13 +58,13 @@ Install dependencies:
 	# Python
 	pip install numpy opencv-python
 	# Change the cuda version to your version. ex. CUDA 9.2: +cu92, or CPU, +cpu
-	pip install torch==1.4.0+cu101 -f https://download.pytorch.org/whl/torch_stable.html
+	pip install torch==1.4.0+cu101 torchvision==0.5.0+cu101 -f https://download.pytorch.org/whl/torch_stable.html
 	
 	# Conda (Anaconda/Miniconda)
 	conda install numpy -y
 	pip install opencv-python
 	# Change cudatoolkit to your version
-	conda install pytorch==1.4.0 cudatoolkit=10.1 -c pytorch -y
+	conda install pytorch==1.4.0 torchvision==0.5.0 cudatoolkit=10.1 -c pytorch -y
 	
 Download repository:
 
