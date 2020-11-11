@@ -27,10 +27,7 @@ prefix = 'You need torch>=1.0.0, <=1.4.0, you have torch=='
 if torch_version_split[0] == '0':
     raise RuntimeError(prefix + torch_version + ' < 1.0.0')
 elif int(torch_version_split[0]) > 1 or int(torch_version_split[1]) > 4:
-    std = 14
-    # raise RuntimeError(prefix + torch_version + ' > 1.4.0')
-else:
-    std = 11
+    raise RuntimeError(prefix + torch_version + ' > 1.4.0')
 
 if args.build_type == 'bdist_wheel':
     # Check output dir
@@ -52,7 +49,7 @@ for cc in args.compute_compatibility.split(','):
     nvcc_args.append(f'arch=compute_{cc},code=sm_{cc}')
 nvcc_args.append('-w')
 with open('compiler_args.json', 'w') as f:
-    json.dump({'nvcc': nvcc_args, 'cxx': [f'-std=c++{std}', '-w']}, f)
+    json.dump({'nvcc': nvcc_args, 'cxx': ['-std=c++11', '-w']}, f)
 print(f'Compiling for compute compatilility {args.compute_compatibility}')
 
 # Compile
