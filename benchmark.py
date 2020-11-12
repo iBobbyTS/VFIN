@@ -102,6 +102,8 @@ def detect_input_type(input_dir):  # 检测输入类型
         elif os.path.splitext(files[0])[1].replace('.', '').lower() in \
                 ['dpx', 'jpg', 'jpeg', 'exr', 'psd', 'png', 'tif', 'tiff']:
             input_type_ = 'is'
+        else:
+            input_type_ = 'mix'
     return input_type_
 
 
@@ -145,17 +147,18 @@ for input_file_path in processes:
     sf = args['sf']
     frame_count = int(cap.get(7))
     frame_count_len = len(str(frame_count))
-    if args['empty_cache']:
-        os.environ['CUDA_EMPTY_CACHE'] = '1'
-    if args['model_path'] == 'default':  # 模型路径
-        model_path = f"{args['algorithm']}/{model_path[args['algorithm']]}"
-    # Model checking
-    if not os.path.exists(model_path):
-        print(f"Model {model_path} doesn't exist, exiting")
-        exit(1)
     # Setup
-    sys.path.append(f"{os.path.abspath(args['algorithm'])}")
-    from interpolator import Interpolator
+    if 'Interpolator' not in locals():
+        if args['empty_cache']:
+            os.environ['CUDA_EMPTY_CACHE'] = '1'
+        if args['model_path'] == 'default':  # 模型路径
+            model_path = f"{args['algorithm']}/{model_path[args['algorithm']]}"
+        # Model checking
+        if not os.path.exists(model_path):
+            print(f"Model {model_path} doesn't exist, exiting")
+            exit(1)
+        sys.path.append(f"{os.path.abspath(args['algorithm'])}")
+        from interpolator import Interpolator
     # Interpolate
     interpolator = Interpolator(model_path, sf, int(cap.get(4)), int(cap.get(3)), batch_size=1,
                                 save_which=1, net_name='DAIN_slowmotion', channel=3)
@@ -200,4 +203,4 @@ for input_file_path in processes:
                   f'Total time spend: {second2time(timer + initialize_time)} | '
                   f'Loss: {loss_fn.get_loss()}',
                   end='', flush=True)
-    print(f'\rLoss: {loss_fn.get_loss()} | Total time spend: {second2time(timer + initialize_time)}', flush=True)
+    print(f"\rFilename: {''.join(input_file_name_list[1:3])} | Loss: {loss_fn.get_loss()} | Total time spend: {second2time(timer + initialize_time)}", flush=True)
