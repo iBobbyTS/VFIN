@@ -121,7 +121,8 @@ class data_loader:
             self.cap.set(1, self.start_frame)
             self.fps = self.cap.get(5)
 
-            self.frame_count = int(self.cap.get(7) - self.start_frame)
+            # self.frame_count = int(self.cap.get(7) - self.start_frame)
+            self.frame_count = int(self.cap.get(7))
             self.height = self.cap.get(4)
             self.width = self.cap.get(3)
 
@@ -233,13 +234,14 @@ for input_file_path in processes:
             end_frame = frame_count
         else:
             copy = False
-            end_frame = in_end_frame + 1
+            end_frame = args['end_frame'] + 1
         if args['start_frame'] == 0 or args['start_frame'] >= frame_count:
             start_frame = 1
+        else:
+            start_frame = args['start_frame']
 
         if args['model_path'] == 'default':  # 模型路径
             model_path = f"{args['algorithm']}/{model_path[args['algorithm']]}"
-
         output_type = args['output_type']
 
         output_dir = args['output']
@@ -261,12 +263,14 @@ for input_file_path in processes:
             dest_path = False
         os.makedirs(output_dir)
         cag = {'input_file_path': input_file_path,
+               'input_type': input_type,
                'empty_cache': args['empty_cache'],
                'model_path': model_path,
                'temp_folder': temp_file_path,
                'algorithm': args['algorithm'],
                'sf': sf,
                'sf_len': len(str(sf)),
+               'frame_count': frame_count,
                'frame_count_len': len(str(video.frame_count)),
                'height': video.height,
                'width': video.width,
@@ -284,12 +288,11 @@ for input_file_path in processes:
 
         with open(f'{temp_file_path}/process_info.json', 'w') as f:
             json.dump(cag, f)
-
     else:
-        with open(cag_path, 'r') as f_:
+        with open(input_file_path, 'r') as f_:
             cag = json.load(f_)
-        # start_frame = listdir()
-        video = data_loader(cag['input_file_path'], cag['input_type'], cag['start_frame'])
+        start_frame = len(listdir(cag['output_dir'])) // cag['sf']
+        video = data_loader(cag['input_file_path'], cag['input_type'], start_frame - 1)
 
     if cag['empty_cache']:
         os.environ['CUDA_EMPTY_CACHE'] = '1'
@@ -299,54 +302,64 @@ for input_file_path in processes:
         print(f"Model {cag['model_path']} doesn't exist, exiting")
         exit(1)
     # Start frame
-    batch_count = (frame_count - 1) // args['batch_size']
-    if (frame_count - 1) % args['batch_size']:
+    batch_count = (cag['frame_count'] - start_frame) // cag['batch_size']
+    if (cag['frame_count'] - 1) % cag['batch_size']:
         batch_count += 1
 
     # Setup
     sys.path.append(f"{os.path.abspath(cag['algorithm'])}")
     from interpolator import Interpolator
+
     # Interpolate
-    interpolator = Interpolator(cag['model_path'], cag['sf'], int(cag['height']), int(cag['width']), batch_size=1, save_which=1, net_name='DAIN_slowmotion', channel=3)
+    interpolator = Interpolator(cag['model_path'], cag['sf'], int(cag['height']), int(cag['width']), batch_size=1,
+                                save_which=1, net_name='DAIN_slowmotion', channel=3)
     save = data_writer(cag['output_type'])
     batch = [video.read()]
+    # new_add_frame = [video.read() for _ in range(cag['batch_size']+1)]
     timer = 0
     start_time = time.time()
-    for i in range(batch_count):
-        del batch[:-1]
-        batch.extend([video.read() for _ in range(cag['batch_size'])])
-        if batch[-1] is None:
-            batch = [b for b in batch if b is not None]
-        intermediate_frames = interpolator.interpolate(batch)
-        for frame_index, interpolated_frame in enumerate(batch[:-1]):
-            save(f"{cag['output_dir']}/"
-                 f"{str(i * cag['batch_size'] + frame_index).zfill(cag['frame_count_len'])}_"
-                 f"{'0'.zfill(cag['sf_len'])}", batch[frame_index])
-        for frame_index, interpolated_batch in enumerate(intermediate_frames):
-            for batch_index, interpolated_frame in enumerate(interpolated_batch):
+    try:
+        for i in range(batch_count):
+            # del batch[:-1]
+            # batch.extend([video.read() for _ in range(cag['batch_size'])])
+            del batch[:-1]
+            batch.extend([video.read() for _ in range(cag['batch_size'])])
+            if batch[-1] is None:
+                batch = [b for b in batch if b is not None]
+            intermediate_frames = interpolator.interpolate(batch)
+            for frame_index, interpolated_frame in enumerate(batch[:-1]):
                 save(f"{cag['output_dir']}/"
-                     f"{str(i * cag['batch_size'] + batch_index).zfill(cag['frame_count_len'])}_"
-                     f"{str(frame_index + 1).zfill(cag['sf_len'])}", interpolated_frame)
-        # Time
-        time_spent = time.time() - start_time
-        start_time = time.time()
-        if i == 0:
-            initialize_time = time_spent
-            print(f'Initialized and processed frame 0/{batch_count} | '
-                  f'{batch_count - i - 1} frames left | '
-                  f'Time spent: {round(initialize_time, 2)}s | ',
-                  end='')
-        else:
-            timer += time_spent
-            frames_processes = i + 1
-            frames_left = batch_count - frames_processes
-            print(f'\rProcessed batch {frames_processes}/{batch_count} | '
-                  f"{frames_left} {'batches' if frames_left > 1 else 'batch'} left | "
-                  f'Time spent: {round(time_spent, 2)}s | '
-                  f'Time left: {second2time(frames_left * timer / i)} | '
-                  f'Total time spend: {second2time(timer + initialize_time)}', end='', flush=True)
+                     f"{str(i * cag['batch_size'] + frame_index + start_frame - 1).zfill(cag['frame_count_len'])}_"
+                     f"{'0'.zfill(cag['sf_len'])}", batch[frame_index])
+            for frame_index, interpolated_batch in enumerate(intermediate_frames):
+                for batch_index, interpolated_frame in enumerate(interpolated_batch):
+                    save(f"{cag['output_dir']}/"
+                         f"{str(i * cag['batch_size'] + batch_index + start_frame - 1).zfill(cag['frame_count_len'])}_"
+                         f"{str(frame_index + 1).zfill(cag['sf_len'])}", interpolated_frame)
+            # Time
+            time_spent = time.time() - start_time
+            start_time = time.time()
+            if i == 0:
+                initialize_time = time_spent
+                print(f'Initialized and processed frame 0/{batch_count} | '
+                      f'{batch_count - i - 1} frames left | '
+                      f'Time spent: {round(initialize_time, 2)}s | ',
+                      end='')
+            else:
+                timer += time_spent
+                frames_processes = i + 1
+                frames_left = batch_count - frames_processes
+                print(f'\rProcessed batch {frames_processes}/{batch_count} | '
+                      f"{frames_left} {'batches' if frames_left > 1 else 'batch'} left | "
+                      f'Time spent: {round(time_spent, 2)}s | '
+                      f'Time left: {second2time(frames_left * timer / i)} | '
+                      f'Total time spend: {second2time(timer + initialize_time)}', end='', flush=True)
+            # new_add_frame[:] = [video.read() for _ in range(cag['batch_size'])]
 
-    print(f'\rDone! Total time spend: {second2time(timer + initialize_time)}', flush=True)
+        print(f'\rDone! Total time spend: {second2time(timer + initialize_time)}', flush=True)
+    except KeyboardInterrupt:
+        print('Caught Ctrl-C, exiting. ')
+        exit(256)
 
     # Post process
     if cag['dest_path']:
@@ -362,4 +375,4 @@ for input_file_path in processes:
         cmd = ''.join(cmd)
         print(cmd)
         os.system(cmd)
-print(time.time()-everything_start_time)
+print(time.time() - everything_start_time)
