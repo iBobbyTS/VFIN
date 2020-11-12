@@ -368,7 +368,7 @@ for input_file_path in processes:
         # Execute command
         cmd = [f"'{os.path.join(cag['ffmpeg_dir'], 'ffmpeg')}' -loglevel error ",
                f"-vsync 0 -r {cag['target_fps']} -pattern_type glob -i '{cag['temp_folder']}/tiff/*.tiff' ",
-               f"-vcodec {cag['vcodec']}{pix_fmt} '{dest_path}'"]
+               f"-vcodec {cag['vcodec']}{pix_fmt} '{cag['dest_path']}'"]
         if cag['start_frame'] == 1 and cag['end_frame'] == 0:
             cmd.insert(1, '-thread_queue_size 128 ')
             cmd.insert(3, f"-vn -i '{input_file_path}' ")
