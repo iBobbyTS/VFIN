@@ -22,7 +22,8 @@ class Interpolator:
                     int(math.ceil(width / 32) * 32) - width if width % 32 else 0]
         dim = [height + self.h_w[0], width + self.h_w[1]]
 
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        cuda_availability = torch.cuda.is_available()
+        device = torch.device("cuda:0" if cuda_availability else "cpu")
 
         # Initialize model
         self.flowComp = model.UNet(6, 4)
@@ -40,15 +41,19 @@ class Interpolator:
         dict1 = torch.load(model_directory, map_location='cpu')
         self.ArbTimeFlowIntrp.load_state_dict(dict1['state_dictAT'])
         self.flowComp.load_state_dict(dict1['state_dictFC'])
-        cuda_availability = torch.cuda.is_available()
+
         self.ndarray2tensor = {True: self.ndarray2cuda_tensor,
                                False: self.ndarray2cpu_tensor
                                }[cuda_availability]
         self.tensor2ndarray = {True: lambda frames: (frames.detach() * 255).byte()
-                                                    [:, :, self.h_w[0]:, self.h_w[1]:].permute(0, 2, 3, 1).cpu().numpy()[:, :, :, ::-1],
-                               False: lambda frames: numpy.transpose((numpy.array(frames.detach().cpu()) * 255).astype(numpy.uint8)
-                                                                     [:, ::-1, self.h_w[0]:, self.h_w[1]:], (0, 2, 3, 1))
+                                                    [:, :, self.h_w[0]:, self.h_w[1]:].permute(0, 2, 3, 1)
+                                                        .cpu().numpy()[:, :, :, ::-1],
+                               False: lambda frames: numpy.transpose(
+                                   (numpy.array(frames.detach().cpu()) * 255).astype(numpy.uint8)
+                                   [:, ::-1, self.h_w[0]:, self.h_w[1]:], (0, 2, 3, 1))
                                }[cuda_availability]
+        self.batch = torch.cuda.FloatTensor(batch_size + 1, 3, dim[0], dim[1]) if cuda_availability \
+            else torch.FloatTensor(batch_size + 1, 3, dim[0], dim[1])
 
     def ndarray2cuda_tensor(self, frames: list):  # 内部调用
         out_frames = []
@@ -56,25 +61,28 @@ class Interpolator:
             frame = torch.cuda.ByteTensor(frame[:, :, ::-1].copy())
             frame = torch.cat([torch.zeros((frame.shape[0], self.h_w[1], 3)).cuda().byte(), frame], dim=1)
             frame = torch.cat([torch.zeros((self.h_w[0], frame.shape[1], 3)).cuda().byte(), frame], dim=0)
-            out_frames.append(frame.permute(2, 0, 1))
-        return torch.stack(out_frames, dim=0).float() / 255
+            out_frames.append(frame.permute(2, 0, 1).float() / 255)
+        return out_frames
 
     def ndarray2cpu_tensor(self, frames: list):
         out_frames = []
         for frame in frames:
             frame = numpy.insert(frame, 0, numpy.zeros((self.h_w[1], frame.shape[0], 3), numpy.uint8), 1)
             frame = numpy.insert(frame, 0, numpy.zeros((self.h_w[0], frame.shape[1], 3), numpy.uint8), 0)
-            out_frames.append(frame)
-        return torch.Tensor(numpy.transpose(numpy.array(out_frames), (0, 3, 1, 2))[:, ::-1].astype('float32') / 255)
+            out_frames.append(
+                torch.FloatTensor(numpy.transpose(frame, (2, 0, 1))[::-1].astype('float32') / 255))
+        return out_frames
 
     def interpolate(self, frames: list):
-        self.input_frames_tensor = self.ndarray2tensor(frames)
-        I0 = self.input_frames_tensor[:-1]
-        I1 = self.input_frames_tensor[1:]
+        f = self.ndarray2tensor(frames)
+        for i in range(self.batch_size):
+            self.batch[i + 1] = f[i]
+        I0 = self.batch[:-1]
+        I1 = self.batch[1:]
         flowOut = self.flowComp(torch.cat((I0, I1), dim=1))
         F_0_1 = flowOut[:, :2, :, :]
         F_1_0 = flowOut[:, 2:, :, :]
-        intermediate_frames = list(range(self.sf-1))  # Each item contains intermediate frames
+        intermediate_frames = list(range(self.sf - 1))  # Each item contains intermediate frames
         for intermediateIndex in range(1, self.sf):
             t = float(intermediateIndex) / self.sf
             temp = -t * (1 - t)
@@ -105,4 +113,5 @@ class Interpolator:
             # Save intermediate frame
             # Ft_p contains batches of one intermediate frame
             intermediate_frames[intermediateIndex - 1] = self.tensor2ndarray(Ft_p)
+        self.batch[0] = self.batch[-1]
         return intermediate_frames
