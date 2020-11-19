@@ -128,12 +128,12 @@ class data_loader:
 
         else:
             self.count = -1
-            self.files = listdir(input_dir)[self.start_frame:]
+            self.files = [f'{input_dir}/{f}' for f in listdir(input_dir)[self.start_frame:]]
 
             self.frame_count = len(self.files)
             self.img = cv2.imread(self.files[0]).shape
             self.height = self.img[0]
-            self.height = self.img[1]
+            self.width = self.img[1]
             del self.img
 
         self.read = self.video_func if self.input_type == 'video' else self.sequence_func
@@ -148,7 +148,7 @@ class data_loader:
         return {'is': cv2.imread,
                 'npz': lambda path: numpy.load(path)['arr_0'],
                 'npy': numpy.load
-                }[self.input_type](f'{self.input_dir}/{self.files[self.count]}')
+                }[self.input_type](self.files[self.count])
 
     def close(self):
         if self.input_type == 'video':
