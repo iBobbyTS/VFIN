@@ -128,27 +128,28 @@ class data_loader:
 
         else:
             self.count = -1
-            self.files = listdir(input_dir)[self.start_frame:]
-
+            self.files = [f'{input_dir}/{f}' for f in listdir(input_dir)[self.start_frame:]]
             self.frame_count = len(self.files)
             self.img = cv2.imread(self.files[0]).shape
             self.height = self.img[0]
-            self.height = self.img[1]
+            self.width = self.img[1]
             del self.img
 
         self.read = self.video_func if self.input_type == 'video' else self.sequence_func
 
     def video_func(self):
-        self.frame = self.cap.read()
-        if self.frame[0]:
-            return self.frame[1]
+        return self.cap.read()
 
     def sequence_func(self):
         self.count += 1
-        return {'is': cv2.imread,
-                'npz': lambda path: numpy.load(path)['arr_0'],
-                'npy': numpy.load
-                }[self.input_type](f'{self.input_dir}/{self.files[self.count]}')
+        img = {'is': cv2.imread,
+               'npz': lambda path: numpy.load(path)['arr_0'],
+               'npy': numpy.load
+               }[self.input_type](self.files[self.count])
+        if img is not None:
+            return True, img
+        else:
+            return False, None
 
     def close(self):
         if self.input_type == 'video':
@@ -311,22 +312,22 @@ for input_file_path in processes:
     from interpolator import Interpolator
 
     # Interpolate
-    interpolator = Interpolator(cag['model_path'], cag['sf'], int(cag['height']), int(cag['width']), batch_size=1,
+    interpolator = Interpolator(cag['model_path'], cag['sf'], int(cag['height']), int(cag['width']),
+                                batch_size=cag['batch_size'],
                                 save_which=1, net_name='DAIN_slowmotion', channel=3)
     save = data_writer(cag['output_type'])
-    batch = [video.read()]
-    # new_add_frame = [video.read() for _ in range(cag['batch_size']+1)]
+    ori_frames = []
+    batch = [None] * (cag['batch_size'])
+    batch.append(video.read()[1])
+    interpolator.batch[0] = interpolator.ndarray2tensor([batch[-1]])[0]
     timer = 0
     start_time = time.time()
     try:
         for i in range(batch_count):
-            # del batch[:-1]
-            # batch.extend([video.read() for _ in range(cag['batch_size'])])
-            del batch[:-1]
-            batch.extend([video.read() for _ in range(cag['batch_size'])])
-            if batch[-1] is None:
-                batch = [b for b in batch if b is not None]
-            intermediate_frames = interpolator.interpolate(batch)
+            batch[0] = batch[-1]
+            batch[1:] = [video.read() for _ in range(cag['batch_size'])]
+            batch[1:] = [frame[1] for frame in batch[1:] if frame[0]]
+            intermediate_frames = interpolator.interpolate(batch[1:])
             for frame_index, interpolated_frame in enumerate(batch[:-1]):
                 save(f"{cag['output_dir']}/"
                      f"{str(i * cag['batch_size'] + frame_index + start_frame - 1).zfill(cag['frame_count_len'])}_"
@@ -341,9 +342,9 @@ for input_file_path in processes:
             start_time = time.time()
             if i == 0:
                 initialize_time = time_spent
-                print(f'Initialized and processed frame 0/{batch_count} | '
+                print(f'Initialized and processed frame 1/{batch_count} | '
                       f'{batch_count - i - 1} frames left | '
-                      f'Time spent: {round(initialize_time, 2)}s | ',
+                      f'Time spent: {round(initialize_time, 2)}s',
                       end='')
             else:
                 timer += time_spent
