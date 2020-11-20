@@ -116,12 +116,15 @@ class data_loader:
         self.input_type = input_type
         self.input_dir = input_dir
         self.start_frame = start_frame
+        self.sequence_read_funcs = {'is': cv2.imread,
+                                    'npz': lambda path: numpy.load(path)['arr_0'],
+                                    'npy': numpy.load
+                                   }
+        self.read = self.video_func if self.input_type == 'video' else self.sequence_func
         if input_type == 'video':
             self.cap = cv2.VideoCapture(input_dir)
             self.cap.set(1, self.start_frame)
             self.fps = self.cap.get(5)
-
-            # self.frame_count = int(self.cap.get(7) - self.start_frame)
             self.frame_count = int(self.cap.get(7))
             self.height = self.cap.get(4)
             self.width = self.cap.get(3)
@@ -130,7 +133,7 @@ class data_loader:
             self.count = -1
             self.files = [f'{input_dir}/{f}' for f in listdir(input_dir)[self.start_frame:]]
             self.frame_count = len(self.files)
-            self.img = cv2.imread(self.files[0]).shape
+            self.img = self.sequence_read_funcs[input_type](self.files[0]).shape
             self.height = self.img[0]
             self.width = self.img[1]
             del self.img
@@ -142,10 +145,7 @@ class data_loader:
 
     def sequence_func(self):
         self.count += 1
-        img = {'is': cv2.imread,
-               'npz': lambda path: numpy.load(path)['arr_0'],
-               'npy': numpy.load
-               }[self.input_type](self.files[self.count])
+        img = self.sequence_read_funcs[self.input_type](self.files[self.count])
         if img is not None:
             return True, img
         else:
