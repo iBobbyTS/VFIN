@@ -284,6 +284,7 @@ for input_file_path in processes:
                'output_type': output_type,
                'output_dir': output_dir,
                'dest_path': dest_path,
+               'copy': copy,
                'mac_compatibility': args['mac_compatibility'],
                'ffmpeg_dir': args['ffmpeg_dir'],
                'target_fps': target_fps,
