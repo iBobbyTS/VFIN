@@ -16,7 +16,7 @@ class FilterInterpolationLayer(Function):
 
         assert(input1.is_contiguous())
         assert(input2.is_contiguous())
-        assert (input3.is_contiguous())
+        assert(input3.is_contiguous())
         # self.input1 = input1.contiguous() # need to use in the backward process, so we need to cache it
         # self.input2 = input2.contiguous() # TODO: Note that this is simply a shallow copy?
         # self.input3 = input3.contiguous()
@@ -30,6 +30,7 @@ class FilterInterpolationLayer(Function):
 
 
         # output = output.cuda()
+        empty_cache()
         output = torch.cuda.FloatTensor().resize_(input1.size()).zero_()
         my_lib.FilterInterpolationLayer_gpu_forward(input1, input2, input3, output)
         empty_cache()
