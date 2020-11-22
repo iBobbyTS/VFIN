@@ -103,10 +103,10 @@ model_path = {'DAIN': 'model_weights/best.pth', 'SSM': 'SuperSloMo.ckpt'}
 
 def listdir(folder):  # 输入文件夹路径，输出文件夹内的文件，排序并移除可能的无关文件
     disallow = ['.DS_Store', '.ipynb_checkpoints', '$RECYCLE.BIN', 'Thumbs.db', 'desktop.ini']
-    files = []
-    for file in os.listdir(folder):
-        if file not in disallow and file[:2] != '._':
-            files.append(file)
+    files = os.listdir(folder)
+    for file in files:
+        if file in disallow:
+            files.remove(file)
     files.sort()
     return files
 
@@ -360,11 +360,7 @@ for input_file_path in processes:
     except KeyboardInterrupt:
         print('Caught Ctrl-C, exiting. ')
         exit(256)
-    if cag['copy']:
-        for i in range(cag['sf']):
-            save(f"{cag['output_dir']}/"
-                 f"{str(frame_count - 1).zfill(cag['frame_count_len'])}_"
-                 f"{str(i).zfill(cag['sf_len'])}", batch[-1])
+
     # Post process
     if cag['dest_path']:
         # Mac compatibility
