@@ -10,7 +10,8 @@ from empty_cache import empty_cache
 
 class Interpolator:
     warnings.filterwarnings("ignore")
-    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.enabled = True
+    torch.backends.cudnn.benchmark = True
     torch.set_grad_enabled(False)
 
     def __init__(self, model_directory: str, sf: int, height: int, width: int, batch_size=1, **dain):
