@@ -1,4 +1,5 @@
 import warnings
+import os
 
 import numpy
 import torch
@@ -9,7 +10,7 @@ from empty_cache import empty_cache
 
 class Interpolator:
     warnings.filterwarnings("ignore")
-    torch.backends.cudnn.benchmark = True
+    torch.backends.cudnn.benchmark = False
     torch.set_grad_enabled(False)
 
     def __init__(self, model_directory: str, sf: int, height: int, width: int, batch_size=1, **dain):
@@ -45,12 +46,18 @@ class Interpolator:
             intPaddingBottom = 32
 
         pader = torch.nn.ReplicationPad2d([intPaddingLeft, intPaddingRight, intPaddingTop, intPaddingBottom])
-        self.ndarray2tensor = lambda frames: [torch.squeeze(pader(torch.unsqueeze((torch.cuda.ByteTensor(frame)[:, :, :3].permute(2, 0, 1).float() / 255), 0))) for frame in frames]
         self.hs = intPaddingLeft  # Horizontal Start
         self.he = intPaddingLeft + width
         self.vs = intPaddingTop
         self.ve = intPaddingTop + height  # Vertical End
-        self.batch = torch.cuda.FloatTensor(batch_size + 1, 3, intPaddingTop + height + intPaddingBottom, intPaddingLeft + width + intPaddingRight)
+        if 'CUDA_EMPTY_CACHE' in os.environ and int(os.environ['CUDA_EMPTY_CACHE']):
+            self.ndarray2tensor = lambda frames: [torch.squeeze(pader(torch.unsqueeze((torch.ByteTensor(frame)[:, :, :3].permute(2, 0, 1).float() / 255), 0))) for frame in frames]
+            self.batch = torch.FloatTensor(batch_size + 1, 3, intPaddingTop + height + intPaddingBottom, intPaddingLeft + width + intPaddingRight)
+            self.torch_stack = lambda X0, X1: torch.stack((X0, X1), dim=0).cuda()
+        else:
+            self.ndarray2tensor = lambda frames: [torch.squeeze(pader(torch.unsqueeze((torch.cuda.ByteTensor(frame)[:, :, :3].permute(2, 0, 1).float() / 255), 0))) for frame in frames]
+            self.batch = torch.cuda.FloatTensor(batch_size + 1, 3, intPaddingTop + height + intPaddingBottom, intPaddingLeft + width + intPaddingRight)
+            self.torch_stack = lambda X0, X1: torch.stack((X0, X1), dim=0)
 
     def interpolate(self, frames):
         f = self.ndarray2tensor(frames)
@@ -60,7 +67,7 @@ class Interpolator:
         X1 = self.batch[1:]
         empty_cache()
 
-        y_ = self.model(torch.stack((X0, X1), dim=0))[0]
+        y_ = self.model(self.torch_stack(X0, X1))[0]
         empty_cache()
         y_ = y_[self.save_which]
         y_ = [[(255*item).clamp(0.0, 255.0).byte()[0, :, self.vs:self.ve,self.hs:self.he]
