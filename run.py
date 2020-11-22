@@ -174,6 +174,8 @@ def detect_input_type(input_dir):  # 检测输入类型
         files = listdir(input_dir)
         if os.path.splitext(files[0])[1].lower() == '.npz':
             input_type_ = 'npz'
+        elif os.path.splitext(files[0])[1].lower() == '.npy':
+            input_type_ = 'npy'
         elif os.path.splitext(files[0])[1].replace('.', '').lower() in \
                 ['dpx', 'jpg', 'jpeg', 'exr', 'psd', 'png', 'tif', 'tiff']:
             input_type_ = 'is'
