@@ -360,7 +360,11 @@ for input_file_path in processes:
     except KeyboardInterrupt:
         print('Caught Ctrl-C, exiting. ')
         exit(256)
-
+    if cag['copy']:
+        for i in range(cag['sf']):
+            save(f"{cag['output_dir']}/"
+                 f"{str(frame_count - 1).zfill(cag['frame_count_len'])}_"
+                 f"{str(i).zfill(cag['sf_len'])}", batch[-1])
     # Post process
     if cag['dest_path']:
         # Mac compatibility
