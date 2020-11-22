@@ -257,7 +257,6 @@ for input_file_path in processes:
             output_dir, ext = os.path.splitext(output_dir)
         if not os.path.exists(os.path.split(output_dir)[0]):
             os.makedirs(os.path.split(output_dir)[0])
-        os.makedirs(os.path.split(output_dir)[0])
         if output_type == 'video':
             dest_path = check_output_dir(os.path.splitext(output_dir)[0], ext)
             output_dir = f'{temp_file_path}/tiff'
