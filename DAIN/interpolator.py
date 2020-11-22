@@ -63,6 +63,7 @@ class Interpolator:
         f = self.ndarray2tensor(frames)
         for i in range(self.batch_size):
             self.batch[i + 1] = f[i]
+        # print(self.batch)
         X0 = self.batch[:-1]
         X1 = self.batch[1:]
         empty_cache()
@@ -73,5 +74,5 @@ class Interpolator:
         y_ = [[(255*item).clamp(0.0, 255.0).byte()[0, :, self.vs:self.ve,self.hs:self.he]
                         .permute(1, 2, 0).cpu().numpy()] for item in y_]
         empty_cache()
-
+        self.batch[0] = self.batch[1]
         return y_
