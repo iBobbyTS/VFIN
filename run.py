@@ -78,12 +78,6 @@ parser.add_argument('-ec', '--empty_cache',  # Batch Size
 parser.add_argument('-tmp', '--temp_file_path',  # 临时文件路径
                     type=str, default='tmp',
                     help='Specify temporary file path')
-parser.add_argument('-tmpdv', '--temp_drive_file_path',  # 临时文件路径
-                    type=str,
-                    help='COLAB ONLY!!! Specify temporary file path in your mounted Drive. ')
-parser.add_argument('-stp', '--store_step',  # 临时文件路径
-                    type=int, default=100,
-                    help='How often do you want to copy the progress to drive. ')
 parser.add_argument('-rm', '--remove_temp_file',  # 是否移除临时文件
                     type=bool, default=False,
                     help='If you want to keep temporary files, select True ')
@@ -91,10 +85,6 @@ parser.add_argument('-rm', '--remove_temp_file',  # 是否移除临时文件
 # DAIN
 parser.add_argument('-net', '--net_name', type=str, default='DAIN_slowmotion',  # DAIN 的网络
                     choices=['DAIN', 'DAIN_slowmotion'], help='model architecture: DAIN | DAIN_slowmotion')
-parser.add_argument('-sw', '--save_which', type=int, default=1,  # 保存哪个
-                    choices=[0, 1], help='choose which result to save: 0 ==> interpolated, 1==> rectified')
-parser.add_argument('-ri', '--reinitialize', type=int, default=0,  # 保存哪个
-                    choices=[0, 1], help='Reinitilize for each interpolation')
 
 args = parser.parse_args()
 
@@ -320,8 +310,8 @@ for input_file_path in processes:
 
     # Interpolate
     interpolator = Interpolator(cag['model_path'], cag['sf'], int(cag['height']), int(cag['width']), batch_size=cag['batch_size'],
-                                save_which=1, net_name=cag['net_name'], channel=3  # DAIN
-                                )
+                                net_name=cag['net_name'], channel=3  # DAIN
+                               )
     save = data_writer(cag['output_type'])
     ori_frames = []
     batch = [None] * (cag['batch_size'])
