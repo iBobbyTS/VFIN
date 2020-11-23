@@ -16,7 +16,6 @@ class Interpolator:
 
     def __init__(self, model_directory: str, sf: int, height: int, width: int, batch_size=1, **dain):
         # args
-        self.save_which = dain['save_which']
         self.batch_size = batch_size
         # Model
         model = networks.__dict__[dain['net_name']](
@@ -72,11 +71,7 @@ class Interpolator:
         X0 = self.batch[:-1]
         X1 = self.batch[1:]
         empty_cache()
-
-        y_ = self.model(self.torch_stack(X0, X1))[0]
-        empty_cache()
-        y_ = y_[self.save_which]
-        y_ = self.tensor2ndarray(y_)
+        y_ = self.tensor2ndarray(self.model(self.torch_stack(X0, X1)))
         empty_cache()
         self.batch[0] = self.batch[1]
         return y_
