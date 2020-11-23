@@ -267,7 +267,7 @@ for input_file_path in processes:
             output_type = 'tiff'
         else:
             dest_path = False
-        os.makedirs(output_dir)
+        os.makedirs(output_dir, exist_ok=True)
         cag = {'input_file_path': input_file_path,
                'input_type': input_type,
                'empty_cache': args['empty_cache'],
