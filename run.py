@@ -88,7 +88,7 @@ parser.add_argument('-net', '--net_name', type=str, default='DAIN_slowmotion',  
 
 args = parser.parse_args()
 
-model_path = {'DAIN': 'model_weights/best.pth', 'SSM': 'SuperSloMo.ckpt'}
+model_paths = {'DAIN': 'model_weights/best.pth', 'SSM': 'SuperSloMo.ckpt'}
 
 
 def listdir(folder):  # 输入文件夹路径，输出文件夹内的文件，排序并移除可能的无关文件
@@ -234,7 +234,7 @@ for input_file_path in processes:
             start_frame = args['start_frame']
 
         if args['model_path'] == 'default':  # 模型路径
-            model_path = f"{args['algorithm']}/{model_path[args['algorithm']]}"
+            model_path = f"{args['algorithm']}/{model_paths[args['algorithm']]}"
         else:
             model_path = args['model_path']
         output_type = args['output_type']
