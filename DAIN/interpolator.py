@@ -59,6 +59,10 @@ class Interpolator:
             self.ndarray2tensor = lambda frames: [torch.squeeze(pader(torch.unsqueeze((torch.cuda.ByteTensor(frame)[:, :, :3].permute(2, 0, 1).float() / 255), 0))) for frame in frames]
             self.batch = torch.cuda.FloatTensor(batch_size + 1, 3, intPaddingTop + height + intPaddingBottom, intPaddingLeft + width + intPaddingRight)
             self.torch_stack = lambda X0, X1: torch.stack((X0, X1), dim=0)
+        if dain['net_name'] == 'DAIN_slowmotion':
+            self.tensor2ndarray = lambda y_: [[(255*item).clamp(0.0, 255.0).byte()[0, :, self.vs:self.ve,self.hs:self.he].permute(1, 2, 0).cpu().numpy()] for item in y_]
+        elif dain['net_name'] == 'DAIN':
+            self.tensor2ndarray = lambda y_: [[(255*item).clamp(0.0, 255.0).byte()[:, self.vs:self.ve,self.hs:self.he].permute(1, 2, 0).cpu().numpy()] for item in y_]
 
     def interpolate(self, frames):
         f = self.ndarray2tensor(frames)
@@ -72,8 +76,7 @@ class Interpolator:
         y_ = self.model(self.torch_stack(X0, X1))[0]
         empty_cache()
         y_ = y_[self.save_which]
-        y_ = [[(255*item).clamp(0.0, 255.0).byte()[0, :, self.vs:self.ve,self.hs:self.he]
-                        .permute(1, 2, 0).cpu().numpy()] for item in y_]
+        y_ = self.tensor2ndarray(y_)
         empty_cache()
         self.batch[0] = self.batch[1]
         return y_
