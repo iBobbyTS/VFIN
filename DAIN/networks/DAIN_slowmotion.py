@@ -98,54 +98,38 @@ class DAIN_slowmotion(torch.nn.Module):
         s1 = torch.cuda.current_stream()
         s2 = torch.cuda.current_stream()
 
-        '''
-            STEP 1: sequeeze the input 
-        '''
+        # STEP 1: sequeeze the input
         if self.training == True:
             assert input.size(0) == 3
-            input_0,input_1,input_2 = torch.squeeze(input,dim=0)
+            input_0, input_1, input_2 = torch.squeeze(input,dim=0)
         else:
             assert input.size(0) ==2
-            input_0,input_2 = torch.squeeze(input,dim=0)
+            input_0, input_2 = torch.squeeze(input,dim=0)
 
 
         #prepare the input data of current scale
         cur_input_0 = input_0
         if self.training == True:
             cur_input_1 = input_1
-        cur_input_2 =  input_2
+        cur_input_2 = input_2
 
-        '''
-            STEP 3.2: concatenating the inputs.
-        '''
+        # STEP 3.2: concatenating the inputs. 
         cur_offset_input = torch.cat((cur_input_0, cur_input_2), dim=1)
         cur_filter_input = cur_offset_input # torch.cat((cur_input_0, cur_input_2), dim=1)
 
-        '''
-            STEP 3.3: perform the estimation by the Three subpath Network 
-        '''
-        time_offsets = [ kk * self.timestep for kk in range(1, 1+self.numFrames,1)]
+        # STEP 3.3: perform the estimation by the Three subpath Network
+        time_offsets = [kk * self.timestep for kk in range(1, 1+self.numFrames,1)]
 
         with torch.cuda.stream(s1):
             temp  = self.depthNet(torch.cat((cur_filter_input[:, :3, ...],
                                              cur_filter_input[:, 3:, ...]),dim=0))
             empty_cache()
             log_depth = [temp[:cur_filter_input.size(0)], temp[cur_filter_input.size(0):]]
-
-            cur_ctx_output = [
-                torch.cat((self.ctxNet(cur_filter_input[:, :3, ...]),
-                       log_depth[0].detach()), dim=1),
-                    torch.cat((self.ctxNet(cur_filter_input[:, 3:, ...]),
-                   log_depth[1].detach()), dim=1)
-                    ]
-            empty_cache()
             temp = self.forward_singlePath(self.initScaleNets_filter, cur_filter_input, 'filter')
             empty_cache()
             cur_filter_output = [self.forward_singlePath(self.initScaleNets_filter1, temp, name=None),
                              self.forward_singlePath(self.initScaleNets_filter2, temp, name=None)]
             empty_cache()
-
-
             depth_inv = [1e-6 + 1 / torch.exp(d) for d in log_depth]
 
         with torch.cuda.stream(s2):
@@ -164,51 +148,30 @@ class DAIN_slowmotion(torch.nn.Module):
             self.FlowProject(cur_offset_outputs[1],depth_inv[1])
                 ]
 
-        '''
-            STEP 3.4: perform the frame interpolation process 
-        '''
-        cur_output_rectified = []
+        # STEP 3.4: perform the frame interpolation process
         cur_output = []
-        
         for temp_0,temp_1, timeoffset in zip(cur_offset_outputs[0], cur_offset_outputs[1], time_offsets):
-            cur_offset_output = [temp_0,temp_1] #[cur_offset_outputs[0][0], cur_offset_outputs[1][0]]
-            ctx0,ctx2 = self.FilterInterpolate_ctx(cur_ctx_output[0],cur_ctx_output[1],
-                               cur_offset_output,cur_filter_output, timeoffset)
             empty_cache()
-            
-            cur_output_temp ,ref0,ref2 = self.FilterInterpolate(cur_input_0, cur_input_2,cur_offset_output,
-                                          cur_filter_output,self.filter_size**2, timeoffset)
-            empty_cache()
+            cur_output_temp = self.FilterInterpolate(cur_input_0, cur_input_2,[temp_0,temp_1],
+                                        cur_filter_output,self.filter_size**2, timeoffset)[0]
             cur_output.append(cur_output_temp)
 
-            rectify_input = torch.cat((cur_output_temp,ref0,ref2,
-                                        cur_offset_output[0],cur_offset_output[1],
-                                        cur_filter_output[0],cur_filter_output[1],
-                                        ctx0,ctx2
-                                        ),dim =1)
-            cur_output_rectified_temp = self.rectifyNet(rectify_input) + cur_output_temp
-            cur_output_rectified.append(cur_output_rectified_temp)
-
-        '''
-            STEP 3.5: for training phase, we collect the variables to be penalized.
-        '''
+        # STEP 3.5: for training phase, we collect the variables to be penalized. 
         if self.training == True:
                 losses +=[cur_output - cur_input_1]
                 losses += [cur_output_rectified - cur_input_1]                
                 offsets +=[cur_offset_output]
                 filters += [cur_filter_output]
-        '''
-            STEP 4: return the results
-        '''
+        
+        # STEP 4: return the results
         if self.training == True:
             # if in the training phase, we output the losses to be minimized.
             # return losses, loss_occlusion
-            return losses, offsets,filters,occlusions
+            return losses, offsets, filters, occlusions
         else:
-            cur_outputs = [cur_output,cur_output_rectified]
-            return cur_outputs,cur_offset_output,cur_filter_output
+            return cur_output
 
-    def forward_flownets(self, model, input, time_offsets = None):
+    def forward_flownets(self, model, input, time_offsets=None):
 
         if time_offsets == None :
             time_offsets = [0.5]
