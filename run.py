@@ -281,6 +281,7 @@ for input_file_path in processes:
                'start_frame': start_frame,
                'end_frame': end_frame,
                'batch_size': args['batch_size'],
+               'net_name': args['net_name'],
                'output_type': output_type,
                'output_dir': output_dir,
                'dest_path': dest_path,
@@ -316,9 +317,9 @@ for input_file_path in processes:
     from interpolator import Interpolator
 
     # Interpolate
-    interpolator = Interpolator(cag['model_path'], cag['sf'], int(cag['height']), int(cag['width']),
-                                batch_size=cag['batch_size'],
-                                save_which=1, net_name='DAIN_slowmotion', channel=3)
+    interpolator = Interpolator(cag['model_path'], cag['sf'], int(cag['height']), int(cag['width']), batch_size=cag['batch_size'],
+                                save_which=1, net_name=cag['net_name'], channel=3  # DAIN
+                                )
     save = data_writer(cag['output_type'])
     ori_frames = []
     batch = [None] * (cag['batch_size'])
