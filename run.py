@@ -245,6 +245,8 @@ for input_file_path in processes:
 
         if args['model_path'] == 'default':  # 模型路径
             model_path = f"{args['algorithm']}/{model_path[args['algorithm']]}"
+        else:
+            model_path = args['model_path']
         output_type = args['output_type']
 
         output_dir = args['output']
