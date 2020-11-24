@@ -354,7 +354,7 @@ for input_file_path in processes:
                       f'Total time spend: {second2time(timer + initialize_time)}', end='', flush=True)
             # new_add_frame[:] = [video.read() for _ in range(cag['batch_size'])]
 
-        print(f'\rDone! Total time spend: {second2time(timer + initialize_time)}', flush=True)
+        print(f'\r{os.path.split(input_file_path)[1]} done! Total time spend: {second2time(timer + initialize_time)}', flush=True)
     except KeyboardInterrupt:
         print('Caught Ctrl-C, exiting. ')
         exit(256)
