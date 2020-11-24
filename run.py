@@ -202,7 +202,8 @@ if input_type == 'mix':
     processes = [os.path.join(args['input'], process) for process in processes]
 else:
     processes = [args['input']]
-
+# Extra work
+args['start_frame'] -= 1
 for input_file_path in processes:
     input_type = detect_input_type(input_file_path)
     if input_type != 'continue':
@@ -211,7 +212,6 @@ for input_file_path in processes:
         input_file_name_list.pop(1)
         temp_file_path = check_output_dir(os.path.join(args['temp_file_path'], input_file_name_list[1]))
         os.makedirs(temp_file_path)
-        args['start_frame'] -= 1
         video = data_loader(input_file_path, input_type, args['start_frame'])
         frame_count = video.frame_count
         frame_count_len = len(str(frame_count))
