@@ -211,7 +211,6 @@ for input_file_path in processes:
         input_file_name_list.extend(os.path.splitext(input_file_name_list[1]))
         input_file_name_list.pop(1)
         temp_file_path = check_output_dir(os.path.join(args['temp_file_path'], input_file_name_list[1]))
-        os.makedirs(temp_file_path)
         video = data_loader(input_file_path, input_type, args['start_frame'])
         frame_count = video.frame_count
         frame_count_len = len(str(frame_count))
