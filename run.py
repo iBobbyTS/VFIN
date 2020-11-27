@@ -109,15 +109,15 @@ class data_loader:
         self.sequence_read_funcs = {'is': cv2.imread,
                                     'npz': lambda path: numpy.load(path)['arr_0'],
                                     'npy': numpy.load
-                                   }
+                                    }
         self.read = self.video_func if self.input_type == 'video' else self.sequence_func
         if input_type == 'video':
             self.cap = cv2.VideoCapture(input_dir)
             self.cap.set(1, self.start_frame)
             self.fps = self.cap.get(5)
             self.frame_count = int(self.cap.get(7))
-            self.height = self.cap.get(4)
-            self.width = self.cap.get(3)
+            self.height = int(self.cap.get(4))
+            self.width = int(self.cap.get(3))
 
         else:
             self.count = -1
@@ -135,11 +135,11 @@ class data_loader:
 
     def sequence_func(self):
         self.count += 1
-        img = self.sequence_read_funcs[self.input_type](self.files[self.count])
-        if img is not None:
-            return True, img
-        else:
-            return False, None
+        if self.count < self.frame_count:
+            img = self.sequence_read_funcs[self.input_type](self.files[self.count])
+            if img is not None:
+                return True, img
+        return False, None
 
     def close(self):
         if self.input_type == 'video':
@@ -174,23 +174,23 @@ def detect_input_type(input_dir):  # 检测输入类型
     return input_type_
 
 
-def check_output_dir(target_dir, ext=''):
-    count = 2
-    if os.path.exists(target_dir + ext):
-        while True:
-            if not os.path.exists(f'{target_dir}_{count}{ext}'):
-                output_dir = f'{target_dir}_{count}{ext}'
-                break
+def check_name(dire, ext=''):
+    if not os.path.exists(os.path.split(dire)[0]):  # If mother directory doesn't exist
+        os.makedirs(os.path.split(dire)[0])  # Create one
+    if os.path.exists(dire+ext):  # If target file/folder exists
+        count = 2
+        while os.path.exists(f'{dire}_{count}{ext}'):
             count += 1
-    else:
-        output_dir = target_dir + ext
-    return output_dir
+        dire = f'{dire}_{count}{ext}'
+    if not ext:  # Output as folder
+        os.mkdir(dire)
+    return dire
 
 
 def second2time(second: float):
     m, s = divmod(second, 60)
     h, m = divmod(m, 60)
-    t = '%d:%02d:%02d' % (h, m, s)
+    t = '%d:%02d:%.2f' % (h, m, s)
     return t
 
 
@@ -216,7 +216,9 @@ for input_file_path in processes:
         frame_count = video.frame_count
         frame_count_len = len(str(frame_count))
         sf = args['sf']
-        if input_type == 'video':
+        if args['fps']:
+            original_fps = args['fps']
+        elif input_type == 'video':
             original_fps = video.fps
         else:
             original_fps = 30
@@ -237,27 +239,27 @@ for input_file_path in processes:
             model_path = f"{args['algorithm']}/{model_paths[args['algorithm']]}"
         else:
             model_path = args['model_path']
-        output_type = args['output_type']
 
+        output_type = args['output_type']
         output_dir = args['output']
         if output_dir == 'default':
-            output_dir = f'{input_file_name_list[0]}/{input_file_name_list[1]}_{sf}x'
-        if output_type == 'video' and len(output_dir.split('/')[-1].split('.')) < 2:
+            output_dir = f"{input_file_name_list[0]}/{input_file_name_list[1]}{args['algorithm']}"
+        if output_type == 'video':
             if input_file_name_list[2]:
                 ext = input_file_name_list[2]
             else:
                 ext = '.mp4'
         else:
             output_dir, ext = os.path.splitext(output_dir)
-        if not os.path.exists(os.path.split(output_dir)[0]):
-            os.makedirs(os.path.split(output_dir)[0])
+        output_dir = check_name(output_dir, ext)
         if output_type == 'video':
             dest_path = check_output_dir(os.path.splitext(output_dir)[0], ext)
             output_dir = f'{temp_file_path}/tiff'
             output_type = 'tiff'
+            os.makedirs(output_dir)
         else:
             dest_path = False
-        os.makedirs(output_dir, exist_ok=True)
+
         cag = {'input_file_path': input_file_path,
                'input_type': input_type,
                'empty_cache': args['empty_cache'],
@@ -301,7 +303,7 @@ for input_file_path in processes:
         exit(1)
     # Start frame
     batch_count = (cag['frame_count'] - start_frame) // cag['batch_size']
-    if (cag['frame_count'] - 1) % cag['batch_size']:
+    if (cag['frame_count'] - start_frame - 1) % cag['batch_size']:
         batch_count += 1
 
     # Setup
@@ -352,11 +354,9 @@ for input_file_path in processes:
                       f'Time spent: {round(time_spent, 2)}s | '
                       f'Time left: {second2time(frames_left * timer / i)} | '
                       f'Total time spend: {second2time(timer + initialize_time)}', end='', flush=True)
-            # new_add_frame[:] = [video.read() for _ in range(cag['batch_size'])]
 
-        print(f'\r{os.path.split(input_file_path)[1]} done! Total time spend: {second2time(timer + initialize_time)}', flush=True)
     except KeyboardInterrupt:
-        print('Caught Ctrl-C, exiting. ')
+        print('\nCaught Ctrl-C, exiting. ')
         exit(256)
     if cag['copy']:
         for i in range(cag['sf']):
@@ -364,6 +364,8 @@ for input_file_path in processes:
                  f"{str(frame_count - 1).zfill(cag['frame_count_len'])}_"
                  f"{str(i).zfill(cag['sf_len'])}", batch[-1])
     del batch, interpolator
+    print(f'\r{os.path.split(input_file_path)[1]} done! Total time spend: {second2time(timer + initialize_time)}',
+          flush=True)
 
     # Post process
     if cag['dest_path']:
