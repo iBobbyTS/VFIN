@@ -174,7 +174,7 @@ def detect_input_type(input_dir):  # 检测输入类型
     return input_type_
 
 
-def check_name(dire, ext=''):
+def check_output_dir(dire, ext=''):
     if not os.path.exists(os.path.split(dire)[0]):  # If mother directory doesn't exist
         os.makedirs(os.path.split(dire)[0])  # Create one
     if os.path.exists(dire+ext):  # If target file/folder exists
@@ -251,7 +251,7 @@ for input_file_path in processes:
                 ext = '.mp4'
         else:
             output_dir, ext = os.path.splitext(output_dir)
-        output_dir = check_name(output_dir, ext)
+        output_dir = check_output_dir(output_dir, ext)
         if output_type == 'video':
             dest_path = check_output_dir(os.path.splitext(output_dir)[0], ext)
             output_dir = f'{temp_file_path}/tiff'
