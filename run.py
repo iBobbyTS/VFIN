@@ -4,7 +4,8 @@ everything_start_time = time.time()
 
 import os
 import sys
-import shutil
+import subprocess
+from shutil import rmtree
 import json
 import math
 import random
@@ -59,14 +60,18 @@ parser.add_argument('-fd', '--ffmpeg_dir',  # FFmpeg路径
 parser.add_argument('-vc', '--vcodec',  # 视频编码
                     type=str, default='h264',
                     help='Video codec')
-parser.add_argument('-br', '--bit_rate',  # 视频编码
-                    type=str, default='100M',
+parser.add_argument('-ac', '--acodec',  # 音频编码
+                    type=str, default='copy',
+                    help='Audio codec')
+parser.add_argument('-br', '--bit_rate',  # 码率
+                    type=str, default='',
                     help='Bit rate for output video')
-# Other
 parser.add_argument('-mc', '--mac_compatibility',  # 让苹果设备可以直接播放
                     type=bool, default=True,
-                    help='If you want to play it on a mac with QuickTime or iOS, set this to True and the pixel '
-                         'format will be yuv420p. ')
+                    help='If you want to play it on a mac with QuickTime or iOS, set this to True so the pixel '
+                         'format will be yuv420p and vtag will be hvc1 if vcodec is hevc')
+
+# Other
 parser.add_argument('-bs', '--batch_size',  # Batch Size
                     type=int, default=1,
                     help='Specify batch size for faster conversion. This will depend on your cpu/gpu memory. Default: 1')
@@ -86,12 +91,12 @@ parser.add_argument('-rm', '--remove_temp_file',  # 是否移除临时文件
 parser.add_argument('-net', '--net_name', type=str, default='DAIN_slowmotion',  # DAIN 的网络
                     choices=['DAIN', 'DAIN_slowmotion'], help='model architecture: DAIN | DAIN_slowmotion')
 
-args = parser.parse_args()
+args = parser.parse_args().__dict__
 
 model_paths = {'DAIN': 'model_weights/best.pth', 'SSM': 'SuperSloMo.ckpt'}
 
 
-def listdir(folder):  # 输入文件夹路径，输出文件夹内的文件，排序并移除可能的无关文件
+def listdir(folder):
     disallow = ['.DS_Store', '.ipynb_checkpoints', '$RECYCLE.BIN', 'Thumbs.db', 'desktop.ini']
     files = []
     for file in os.listdir(folder):
@@ -177,11 +182,13 @@ def detect_input_type(input_dir):  # 检测输入类型
 def check_output_dir(dire, ext=''):
     if not os.path.exists(os.path.split(dire)[0]):  # If mother directory doesn't exist
         os.makedirs(os.path.split(dire)[0])  # Create one
-    if os.path.exists(dire+ext):  # If target file/folder exists
+    if os.path.exists(dire + ext):  # If target file/folder exists
         count = 2
         while os.path.exists(f'{dire}_{count}{ext}'):
             count += 1
         dire = f'{dire}_{count}{ext}'
+    else:
+        dire = f'{dire}{ext}'
     if not ext:  # Output as folder
         os.mkdir(dire)
     return dire
@@ -193,8 +200,6 @@ def second2time(second: float):
     t = '%d:%02d:%.2f' % (h, m, s)
     return t
 
-
-args = args.__dict__
 
 input_type = detect_input_type(args['input'])
 if input_type == 'mix':
@@ -215,9 +220,7 @@ for input_file_path in processes:
         frame_count = video.frame_count
         frame_count_len = len(str(frame_count))
         sf = args['sf']
-        if args['fps']:
-            original_fps = args['fps']
-        elif input_type == 'video':
+        if input_type == 'video':
             original_fps = video.fps
         else:
             original_fps = 30
@@ -242,7 +245,7 @@ for input_file_path in processes:
         output_type = args['output_type']
         output_dir = args['output']
         if output_dir == 'default':
-            output_dir = f"{input_file_name_list[0]}/{input_file_name_list[1]}{args['algorithm']}"
+            output_dir = f'{input_file_name_list[0]}/{input_file_name_list[1]}_{sf}x'
         if output_type == 'video':
             if input_file_name_list[2]:
                 ext = input_file_name_list[2]
@@ -250,15 +253,15 @@ for input_file_path in processes:
                 ext = '.mp4'
         else:
             output_dir, ext = os.path.splitext(output_dir)
-        output_dir = check_output_dir(output_dir, ext)
+        if not os.path.exists(os.path.split(output_dir)[0]):
+            os.makedirs(os.path.split(output_dir)[0])
         if output_type == 'video':
             dest_path = check_output_dir(os.path.splitext(output_dir)[0], ext)
             output_dir = f'{temp_file_path}/tiff'
             output_type = 'tiff'
-            os.makedirs(output_dir)
         else:
             dest_path = False
-
+        os.makedirs(output_dir, exist_ok=True)
         cag = {'input_file_path': input_file_path,
                'input_type': input_type,
                'empty_cache': args['empty_cache'],
@@ -282,7 +285,9 @@ for input_file_path in processes:
                'mac_compatibility': args['mac_compatibility'],
                'ffmpeg_dir': args['ffmpeg_dir'],
                'target_fps': target_fps,
-               'vcodec': args['vcodec']
+               'vcodec': args['vcodec'],
+               'acodec': args['acodec'],
+               'remove_temp_file': args['remove_temp_file']
                }
 
         with open(f'{temp_file_path}/process_info.json', 'w') as f:
@@ -294,7 +299,7 @@ for input_file_path in processes:
         video = data_loader(cag['input_file_path'], cag['input_type'], start_frame - 1)
 
     if cag['empty_cache']:
-        os.environ['CUDA_EMPTY_CACHE'] = '1'
+        os.environ['CUDA_EMPTY_CACHE'] = cag['empty_cache']
 
     # Model checking
     if not os.path.exists(cag['model_path']):
@@ -302,7 +307,7 @@ for input_file_path in processes:
         exit(1)
     # Start frame
     batch_count = (cag['frame_count'] - start_frame) // cag['batch_size']
-    if (cag['frame_count'] - start_frame - 1) % cag['batch_size']:
+    if (cag['frame_count'] - 1) % cag['batch_size']:
         batch_count += 1
 
     # Setup
@@ -312,7 +317,7 @@ for input_file_path in processes:
     # Interpolate
     interpolator = Interpolator(cag['model_path'], cag['sf'], int(cag['height']), int(cag['width']), batch_size=cag['batch_size'],
                                 net_name=cag['net_name'], channel=3  # DAIN
-                               )
+                                )
     save = data_writer(cag['output_type'])
     ori_frames = []
     batch = [None] * (cag['batch_size'])
@@ -353,31 +358,40 @@ for input_file_path in processes:
                       f'Time spent: {round(time_spent, 2)}s | '
                       f'Time left: {second2time(frames_left * timer / i)} | '
                       f'Total time spend: {second2time(timer + initialize_time)}', end='', flush=True)
+            # new_add_frame[:] = [video.read() for _ in range(cag['batch_size'])]
 
+        print(f'\r{os.path.split(input_file_path)[1]} done! Total time spend: {second2time(timer + initialize_time)}', flush=True)
     except KeyboardInterrupt:
-        print('\nCaught Ctrl-C, exiting. ')
+        print('Caught Ctrl-C, exiting. ')
         exit(256)
     if cag['copy']:
         for i in range(cag['sf']):
             save(f"{cag['output_dir']}/"
                  f"{str(frame_count - 1).zfill(cag['frame_count_len'])}_"
                  f"{str(i).zfill(cag['sf_len'])}", batch[-1])
-    del batch, interpolator
-    print(f'\r{os.path.split(input_file_path)[1]} done! Total time spend: {second2time(timer + initialize_time)}',
-          flush=True)
+    del batch, interpolator, save
 
     # Post process
     if cag['dest_path']:
         # Mac compatibility
-        pix_fmt = ' -pix_fmt yuv420p' if cag['mac_compatibility'] else ''
+        mac_compatibility = ['-pix_fmt', 'yuv420p'] if cag['mac_compatibility'] else ''
+        if 'hevc' in cag['vcodec']:
+            mac_compatibility.extend(['-vtag', 'hvc1'])
         # Execute command
-        cmd = [f"'{os.path.join(cag['ffmpeg_dir'], 'ffmpeg')}' -loglevel error ",
-               f"-vsync 0 -r {cag['target_fps']} -pattern_type glob -i '{cag['temp_folder']}/tiff/*.tiff' ",
-               f"-vcodec {cag['vcodec']}{pix_fmt} '{cag['dest_path']}'"]
-        if cag['start_frame'] == 1 and cag['end_frame'] == 0:
-            cmd.insert(1, '-thread_queue_size 128 ')
-            cmd.insert(3, f"-vn -i '{input_file_path}' ")
-        cmd = ''.join(cmd)
-        print(cmd)
+        cmd = [f"'{os.path.join(cag['ffmpeg_dir'], 'ffmpeg')}'",
+                '-loglevel error', '-vsync 0',
+                '-r', str(cag['target_fps']),
+                '-pattern_type glob',
+                '-i', f"'{os.path.join(cag['temp_folder'], 'tiff/*.tiff')}'",
+                '-vcodec', cag['vcodec'], *mac_compatibility,
+                f"'{cag['dest_path']}'"]
+        has_audio = eval(subprocess.getoutput(f"ffprobe -v quiet -show_streams -select_streams a -print_format json '{path}'"))['streams']
+        if cag['start_frame'] == 1 and cag['end_frame'] == 0 and has_audio:
+            cmd.insert(1, '-thread_queue_size 128')
+            cmd.insert(3, f"-vn -i '{input_file_path}'")
+            cmd.insert(7, f"-acodec {cag['acodec']}")
+        cmd = ' '.join(cmd)
         os.system(cmd)
+    if cag['remove_temp_file']:
+        rmtree(cag['temp_folder'])
 print(time.time() - everything_start_time)
