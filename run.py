@@ -299,7 +299,7 @@ for input_file_path in processes:
         video = data_loader(cag['input_file_path'], cag['input_type'], start_frame - 1)
 
     if cag['empty_cache']:
-        os.environ['CUDA_EMPTY_CACHE'] = cag['empty_cache']
+        os.environ['CUDA_EMPTY_CACHE'] = str(cag['empty_cache'])
 
     # Model checking
     if not os.path.exists(cag['model_path']):
@@ -385,10 +385,10 @@ for input_file_path in processes:
                 '-i', f"'{os.path.join(cag['temp_folder'], 'tiff/*.tiff')}'",
                 '-vcodec', cag['vcodec'], *mac_compatibility,
                 f"'{cag['dest_path']}'"]
-        has_audio = eval(subprocess.getoutput(f"ffprobe -v quiet -show_streams -select_streams a -print_format json '{path}'"))['streams']
+        has_audio = eval(subprocess.getoutput(f"ffprobe -v quiet -show_streams -select_streams a -print_format json '{cag['input_file_path']}'"))['streams']
         if cag['start_frame'] == 1 and cag['end_frame'] == 0 and has_audio:
             cmd.insert(1, '-thread_queue_size 128')
-            cmd.insert(3, f"-vn -i '{input_file_path}'")
+            cmd.insert(3, f"-vn -i '{cag['input_file_path']}'")
             cmd.insert(7, f"-acodec {cag['acodec']}")
         cmd = ' '.join(cmd)
         os.system(cmd)
