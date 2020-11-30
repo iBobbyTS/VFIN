@@ -88,7 +88,7 @@ Download pretrained models,
 
 ### Easy inferencing
 
-	python run_class.py -i input.mp4
+	python run.py -i input.mp4
 
 Check Other arguements in [run.py](https://github.com/iBobbyTS/VFIN/blob/master/run.py). 
 
