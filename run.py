@@ -224,7 +224,10 @@ for input_file_path in processes:
             original_fps = video.fps
         else:
             original_fps = 30
-        target_fps = original_fps * sf
+        if args.fps:
+            target_fps = args.fps
+        else:
+            target_fps = original_fps * sf
 
         if args['end_frame'] == 0 or args['end_frame'] == frame_count or args['end_frame'] > frame_count:
             copy = True
