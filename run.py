@@ -224,8 +224,8 @@ for input_file_path in processes:
             original_fps = video.fps
         else:
             original_fps = 30
-        if args.fps:
-            target_fps = args.fps
+        if args['pfs'] is not None:
+            target_fps = args['fps']
         else:
             target_fps = original_fps * sf
 
