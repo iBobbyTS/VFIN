@@ -197,7 +197,7 @@ def check_output_dir(dire, ext=''):
 def second2time(second: float):
     m, s = divmod(second, 60)
     h, m = divmod(m, 60)
-    t = '%d:%02d:%.2f' % (h, m, s)
+    t = '%d:%02d:%05.2f' % (h, m, s)
     return t
 
 
