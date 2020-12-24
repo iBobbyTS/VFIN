@@ -73,7 +73,7 @@ def _make_video_dataset(dir):
     return framesPath
 
 
-def _pil_loader(path, cropArea=None, resizeDim=None, frameFlip=0):
+def _pil_loader_old(path, cropArea=None, resizeDim=None, frameFlip=0):
     """
     Opens image at `path` using pil and applies data augmentation.
 
@@ -118,6 +118,14 @@ def _pil_loader(path, cropArea=None, resizeDim=None, frameFlip=0):
     # Crop image if crop area specified.
     cropped_img = img.crop(cropArea) if (cropArea != None) else resized_img
     # Flip image horizontally if specified.
+    flipped_img = cropped_img.transpose(Image.FLIP_LEFT_RIGHT) if frameFlip else cropped_img
+    return flipped_img
+
+
+def _pil_loader(path, cropArea=None, resizeDim=None, frameFlip=0):
+    img = Image.open(path)
+    resized_img = img.resize(resizeDim, Image.ANTIALIAS) if (resizeDim != None) else img
+    cropped_img = img.crop(cropArea) if (cropArea != None) else resized_img
     flipped_img = cropped_img.transpose(Image.FLIP_LEFT_RIGHT) if frameFlip else cropped_img
     return flipped_img
 
