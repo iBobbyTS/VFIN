@@ -63,9 +63,9 @@ parser.add_argument('-vc', '--vcodec',  # 视频编码
 parser.add_argument('-ac', '--acodec',  # 音频编码
                     type=str, default='copy',
                     help='Audio codec')
-parser.add_argument('-br', '--bit_rate',  # 码率
-                    type=str, default='',
-                    help='Bit rate for output video')
+parser.add_argument('-crf',  # 码率
+                    type=str, default='24',
+                    help='Constant rate factor for output video')
 parser.add_argument('-mc', '--mac_compatibility',  # 让苹果设备可以直接播放
                     type=bool, default=True,
                     help='If you want to play it on a mac with QuickTime or iOS, set this to True so the pixel '
@@ -289,6 +289,7 @@ for input_file_path in processes:
                'ffmpeg_dir': args['ffmpeg_dir'],
                'target_fps': target_fps,
                'vcodec': args['vcodec'],
+               'crf': args['crf'],
                'acodec': args['acodec'],
                'remove_temp_file': args['remove_temp_file']
                }
@@ -386,7 +387,7 @@ for input_file_path in processes:
                 '-r', str(cag['target_fps']),
                 '-pattern_type glob',
                 '-i', f"'{os.path.join(cag['temp_folder'], 'tiff/*.tiff')}'",
-                '-vcodec', cag['vcodec'], *mac_compatibility,
+                '-vcodec', cag['vcodec'], *mac_compatibility, f"-crf {cag['crf']}"
                 f"'{cag['dest_path']}'"]
         has_audio = eval(subprocess.getoutput(f"ffprobe -v quiet -show_streams -select_streams a -print_format json '{cag['input_file_path']}'"))['streams']
         if cag['start_frame'] == 1 and cag['end_frame'] == 0 and has_audio:
