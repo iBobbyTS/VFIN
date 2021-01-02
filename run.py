@@ -387,7 +387,7 @@ for input_file_path in processes:
                 '-r', str(cag['target_fps']),
                 '-pattern_type glob',
                 '-i', f"'{os.path.join(cag['temp_folder'], 'tiff/*.tiff')}'",
-                '-vcodec', cag['vcodec'], *mac_compatibility, f"-crf {cag['crf']}"
+                '-vcodec', cag['vcodec'], *mac_compatibility, f"-crf {cag['crf']}",
                 f"'{cag['dest_path']}'"]
         has_audio = eval(subprocess.getoutput(f"ffprobe -v quiet -show_streams -select_streams a -print_format json '{cag['input_file_path']}'"))['streams']
         if cag['start_frame'] == 1 and cag['end_frame'] == 0 and has_audio:
