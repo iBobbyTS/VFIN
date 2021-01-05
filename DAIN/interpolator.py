@@ -67,9 +67,9 @@ class Interpolator:
         for item in y_:
             item = (item*255).clamp(0.0, 255.0).byte()
             if self.net_name == 'DAIN_slowmotion':
-                item = item[:, self.vs:self.ve,self.hs:self.he]
-            elif dain['net_name'] == 'DAIN':
                 item = item[0, :, self.vs:self.ve,self.hs:self.he]
+            elif dain['net_name'] == 'DAIN':
+                item = item[:, self.vs:self.ve,self.hs:self.he]
             item = item.permute(1, 2, 0)
             item = item.cpu().numpy()
             item = cv2.resize(item, (self.width + 2, self.height + 2), interpolation=cv2.INTER_LANCZOS4)
