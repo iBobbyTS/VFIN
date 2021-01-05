@@ -46,6 +46,8 @@ class Interpolator:
             intPaddingBottom = 32
 
         pader = torch.nn.ReplicationPad2d([intPaddingLeft, intPaddingRight, intPaddingTop, intPaddingBottom])
+        self.width = width
+        self.height = height
         self.hs = intPaddingLeft  # Horizontal Start
         self.he = intPaddingLeft + width
         self.vs = intPaddingTop
@@ -58,10 +60,22 @@ class Interpolator:
             self.ndarray2tensor = lambda frames: [torch.squeeze(pader(torch.unsqueeze((torch.cuda.ByteTensor(frame)[:, :, :3].permute(2, 0, 1).float() / 255), 0))) for frame in frames]
             self.batch = torch.cuda.FloatTensor(batch_size + 1, 3, intPaddingTop + height + intPaddingBottom, intPaddingLeft + width + intPaddingRight)
             self.torch_stack = lambda X0, X1: torch.stack((X0, X1), dim=0)
-        if dain['net_name'] == 'DAIN_slowmotion':
-            self.tensor2ndarray = lambda y_: [[(255*item).clamp(0.0, 255.0).byte()[0, :, self.vs:self.ve,self.hs:self.he].permute(1, 2, 0).cpu().numpy()] for item in y_]
-        elif dain['net_name'] == 'DAIN':
-            self.tensor2ndarray = lambda y_: [[(255*item).clamp(0.0, 255.0).byte()[:, self.vs:self.ve,self.hs:self.he].permute(1, 2, 0).cpu().numpy()] for item in y_]
+        self.net_name = dain['net_name']
+
+    def tensor2ndarray(self, y_):
+        out = []
+        for item in y_:
+            item = (item*255).clamp(0.0, 255.0).byte()
+            if self.net_name == 'DAIN_slowmotion':
+                item = item[:, self.vs:self.ve,self.hs:self.he]
+            elif dain['net_name'] == 'DAIN':
+                item = item[0, :, self.vs:self.ve,self.hs:self.he]
+            item = item.permute(1, 2, 0)
+            item = item.cpu().numpy()
+            item = cv2.resize(item, (self.width + 2, self.height + 2), interpolation=cv2.INTER_LANCZOS4)
+            item = item[1:(self.width - 1), 1:(self.height - 1)]
+            out.append([item])
+
 
     def interpolate(self, frames):
         f = self.ndarray2tensor(frames)
