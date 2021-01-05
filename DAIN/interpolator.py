@@ -2,6 +2,7 @@ import warnings
 import os
 
 import numpy
+import cv2
 import torch
 
 import networks as networks
@@ -75,7 +76,7 @@ class Interpolator:
             item = cv2.resize(item, (self.width + 2, self.height + 2), interpolation=cv2.INTER_LANCZOS4)
             item = item[1:(self.width - 1), 1:(self.height - 1)]
             out.append([item])
-
+        return out
 
     def interpolate(self, frames):
         f = self.ndarray2tensor(frames)
