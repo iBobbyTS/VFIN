@@ -74,7 +74,7 @@ class Interpolator:
             item = item.permute(1, 2, 0)
             item = item.cpu().numpy()
             item = cv2.resize(item, (self.width + 2, self.height + 2), interpolation=cv2.INTER_LANCZOS4)
-            item = item[1:(self.width - 1), 1:(self.height - 1)]
+            item = item[1:self.height + 1, 1:self.width + 1]
             out.append([item])
         return out
 
