@@ -1,4 +1,5 @@
 # VFIN (Video Frame INterpolation)
+# PLEASE only use the notebook and built files in the 1.2 branch, links in other branches are broken.
 Combination of [DAIN](https://github.com/baowenbo/DAIN), [Super SloMo(SSM)](https://github.com/avinashpaliwal/Super-SloMo), [BIN](https://github.com/laomao0/BIN) and more coming together. Now SSM and DAIN are developed, BIN is still being worked on. 
 
 Colab Demo: [Notebooks](https://drive.google.com/drive/folders/1FWgdEgJxObQtl002ooIq94mlzGUYe6G-?usp=sharing)    [Built VFIN](https://drive.google.com/file/d/1-DW2IyvMgqgD9NOI1X_5Za8BJ9X1J2uM/view?usp=sharing)
