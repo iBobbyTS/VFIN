@@ -12,7 +12,6 @@ Colab Demo: [Notebooks](https://colab.research.google.com/drive/1XnKGDjz628Bveee
 
 
 ### Citation
-[Frame interpolation for normal video](https://github.com/baowenbo/DAIN/)
     @inproceedings{DAIN,
         author    = {Bao, Wenbo and Lai, Wei-Sheng and Ma, Chao and Zhang, Xiaoyun and Gao, Zhiyong and Yang, Ming-Hsuan},
         title     = {Depth-Aware Video Frame Interpolation},
@@ -20,7 +19,6 @@ Colab Demo: [Notebooks](https://colab.research.google.com/drive/1XnKGDjz628Bveee
         year      = {2019}
     }
 
-[Frame interpolation for general video](https://github.com/avinashpaliwal/Super-SloMo)
     @inproceedings{Super SloMo,
         author    = {Jiang, Huaizu and Sun, Deqing and Jampani, Varun and Yang, Ming-Hsuan and Learned-Miller, Erik and Kautz, Jan},
         title     = {High Quality Estimation of Multiple Intermediate Frames for Video Interpolation},
@@ -28,13 +26,6 @@ Colab Demo: [Notebooks](https://colab.research.google.com/drive/1XnKGDjz628Bveee
         year      = {2018}
     }
 
-[Frame interpolation for blurry video](https://github.com/laomao0/BIN)
-     @inproceedings{BIN,
-        author    = {Shen, Wang and Bao, Wenbo and Zhai, Guangtao and Chen, Li and Min, Xiongkuo and Gao, Zhiyong}, 
-        title     = {Blurry Video Frame Interpolation},
-        booktitle = {IEEE Conference on Computer Vision and Pattern Recognition},
-        year      = {2020}
-    }
 
 
 ### Requirements and Dependencies
