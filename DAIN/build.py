@@ -23,11 +23,11 @@ python_executable = sys.executable
 print(f'Building CUDAExtension for PyTorch in {python_executable}')
 torch_version = torch.__version__
 torch_version_split = torch_version.split('.')
-prefix = 'You need torch>=1.0.0, <=1.4.0, you have torch=='
+prefix = 'torch>=1.0.0, <=1.4.0 is tested to work, you have torch=='
 if torch_version_split[0] == '0':
-    raise RuntimeError(prefix + torch_version + ' < 1.0.0')
+    print(prefix + torch_version + ' < 1.0.0')
 elif int(torch_version_split[0]) > 1 or int(torch_version_split[1]) > 4:
-    raise RuntimeError(prefix + torch_version + ' > 1.4.0')
+    print(prefix + torch_version + ' > 1.4.0')
 
 if args.build_type == 'bdist_wheel':
     # Check output dir
