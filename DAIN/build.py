@@ -12,7 +12,7 @@ import torch
 parser = argparse.ArgumentParser()
 parser.add_argument('-ap', '--all_packages', type=str, choices=['False', 'True'], default='False', help='......')
 parser.add_argument('-bt', '--build_type', type=str, choices=['install', 'develop', 'bdist_wheel'], default='install')
-parser.add_argument('-cc', '--compute_compatibility', type=str, default='30,35,37,50,52,53,60,61,62,70,72,75')
+parser.add_argument('-cc', '--compute_compatibility', type=str, default='None')
 parser.add_argument('-o', '--output', type=str, default='default', help='tar')
 args = parser.parse_args()
 
@@ -23,11 +23,11 @@ python_executable = sys.executable
 print(f'Building CUDAExtension for PyTorch in {python_executable}')
 torch_version = torch.__version__
 torch_version_split = torch_version.split('.')
-prefix = 'You need torch>=1.0.0, <=1.4.0, you have torch=='
+prefix = 'torch>=1.0.0, <=1.4.0 is tested to work, you have torch=='
 if torch_version_split[0] == '0':
-    raise RuntimeError(prefix + torch_version + ' < 1.0.0')
+    print(prefix + torch_version + ' < 1.0.0')
 elif int(torch_version_split[0]) > 1 or int(torch_version_split[1]) > 4:
-    raise RuntimeError(prefix + torch_version + ' > 1.4.0')
+    print(prefix + torch_version + ' > 1.4.0')
 
 if args.build_type == 'bdist_wheel':
     # Check output dir
@@ -44,7 +44,13 @@ if args.build_type == 'bdist_wheel':
 
 # Write compiler args
 nvcc_args = []
-for cc in args.compute_compatibility.split(','):
+compute_compatibility = []
+if args.compute_compatibility == 'None':
+    cc = torch.cuda.get_device_capability()
+    compute_compatibility.append(f'{cc[0]}{cc[1]}')
+else:
+    compute_compatibility.extend(args.compute_compatibility.split(','))
+for cc in compute_compatibility:
     nvcc_args.append('-gencode')
     nvcc_args.append(f'arch=compute_{cc},code=sm_{cc}')
 nvcc_args.append('-w')
